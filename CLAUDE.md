@@ -44,6 +44,15 @@
 - エビ32枚: assets/shrimp/{r,b,y,k,g}{1..5}.png、h_{clear,choco,white,purple,gold}.png、s_berried/s_baby
 - アイコン: assets/icons/{feed,water,river,breed,pla,s30,s60,bucket,leaf,wood,stone,snail,molt,chest_closed,chest_open}.png
 
+## 水槽の見方（2026-09-20 追加）
+- 'side'(横から・従来の画像) / 'top'(上から・エビは底を這う)。水槽詳細の右上ボタン（assets/icons/view_top / view_side）で切替。店舗のミニ水槽にも効く
+- 設定は localStorage `ebi-breeder-view` に保存（セーブデータとは別。セーブ版は変えていない）
+- 上からのエビは画像ではなく Canvas で描く（render.js drawShrimpTop）。色は横向き画像の代表色を tintOf() で拾う（32枚の上向き画像は作っていない）。絵にしたくなったら上向きの画像を Higgsfield で作って差し替える
+- 位置 motion は両方の見方で共有。横向き y 0.3〜0.82 → 上から y 0.1〜0.9 に引き伸ばす（topPos）。進行方向 m.ang は移動方向からゆっくり旋回
+- 横から見た表示でもエビは底を這う（2026-09-20）。motion.y は「奥行き」として使い、奥ほど小さく高い位置・手前ほど大きく低い位置（foot 0.87〜0.98h、大きさ 0.8〜1.08倍）。上から見た流木の上にいる個体は横からも流木の上面に乗せる（onWood）。上下のふわふわ(bob)はやめた
+- 横向き画面（landscape, 高さ560px以下）は #app を 900px まで広げ、水槽 canvas を min(62dvh,420px) に。manifest の orientation は any
+- 理由: オーナーから「エビは泳がず底を這う」「横向きにすれば広がる」と指摘
+
 ## デバッグ
 ```js
 __ebi.hours(4)     // 時間を進める

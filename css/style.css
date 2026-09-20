@@ -80,6 +80,8 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .tank-arrow.right{right:8px}
 .tank-arrow.off{opacity:.25;pointer-events:none}
 .tank-canvas{width:100%;height:230px;border-radius:12px;display:block;touch-action:manipulation}
+.view-btn{position:absolute;right:10px;top:8px;width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:2}
+.view-btn img{width:34px;height:34px;object-fit:contain;pointer-events:none}
 .gauge{display:flex;align-items:center;gap:8px;font-size:12px}
 .gauge .lab{width:34px;font-weight:700}
 .gauge .bar{flex:1;height:8px;border-radius:4px;background:#E6ECE9;overflow:hidden}
@@ -236,3 +238,10 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .empty{color:var(--mute);text-align:center;padding:24px 10px;font-size:13px}
 .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mute);background:var(--bg);z-index:40}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* スマホを横向きにしたとき: 画面幅いっぱいに使い、水槽を大きく見せる */
+@media (orientation:landscape) and (max-height:560px){
+  #app{max-width:900px}
+  .tank-canvas{height:min(62dvh,420px)}
+  .tile canvas{height:120px}
+  .grid2{grid-template-columns:1fr 1fr 1fr}
+}

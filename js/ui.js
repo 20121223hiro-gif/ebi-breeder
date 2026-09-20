@@ -12,7 +12,7 @@ import {
 import { priceOf, sellError, isLastOfSex, sell, fmtYen } from './economy.js';
 import { wantLabel, matchesWant, visitorPrice, deliver } from './visitors.js';
 import { DESTS, MATERIALS, ROLE_JA, canSend, teamBonus, tripSummary } from './river.js';
-import { TankView } from './render.js';
+import { TankView, getViewMode, toggleViewMode } from './render.js';
 import { sprites } from './assets.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -168,7 +168,7 @@ export function createUI(app) {
     root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>${esc(t.name)}<span class="cnt">${list.length} / ${t.cap}匹</span></div>
     <div class="body">
       ${switcher}
-      <div style="position:relative"><canvas class="tank-canvas" data-tank="${t.id}"></canvas>${arrows}<span class="chip" style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85)">${list.length ? 'エビをタップで個体カード' : 'エビがいません'}</span></div>
+      <div style="position:relative"><canvas class="tank-canvas" data-tank="${t.id}"></canvas>${arrows}<span class="chip" style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85)">${list.length ? 'エビをタップで個体カード' : 'エビがいません'}</span><button class="view-btn" data-act="view" aria-label="${getViewMode() === 'top' ? '横から見る' : '上から見る'}" title="${getViewMode() === 'top' ? '横から見る' : '上から見る'}"><img src="assets/icons/view_${getViewMode() === 'top' ? 'side' : 'top'}.png" alt=""></button></div>
       <div class="panel" style="display:flex;flex-direction:column;gap:7px">
         ${gauge('汚れ', t.dirt, '%', 60, 80, 'dirt')}
         <div class="gauge" data-g="food"><span class="lab">餌</span><div class="bar"><i class="${t.food < 20 ? 'bad' : t.food < 60 ? 'warn' : ''}" style="width:${Math.round(t.food)}%"></i></div><span class="val" style="${t.food < 20 ? 'color:var(--red)' : t.food < 60 ? 'color:var(--amber-ink)' : ''}">${t.food < 20 ? '少' : t.food < 60 ? '中' : '十分'}</span></div>
@@ -193,6 +193,7 @@ export function createUI(app) {
         if (hit) openSheet(hit);
       });
     }
+    root.querySelector('[data-act="view"]').onclick = () => { const v = toggleViewMode(); app.toast(v === 'top' ? '上から見ています' : '横から見ています'); render(); };
     root.querySelector('[data-act="feed"]').onclick = () => { feed(t); app.mutate(); app.toast('餌をあげた'); render(); };
     root.querySelector('[data-act="water"]').onclick = () => { changeWater(t); app.mutate(); app.toast('換水した'); render(); };
     if (sheetId) openSheet(sheetId);
