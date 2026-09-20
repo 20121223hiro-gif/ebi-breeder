@@ -1,7 +1,7 @@
 // 起動・ループ・保存・遷移。ゲームのルールは sim/genetics、画面は ui に置く。
 import { loadSprites } from './assets.js';
 import { newGame, advance } from './sim.js';
-import { load, save, wipe, logError } from './state.js';
+import { load, save, wipe, logError, migrate } from './state.js';
 import { createUI } from './ui.js';
 import { labelOfKey, dexKey } from './genetics.js';
 import { wantLabel } from './visitors.js';
@@ -28,6 +28,26 @@ const app = {
     if (this.nav.length > 1) history.back(); else this.go('home');
   },
   mutate() { save(this.state); },
+
+  // セーブの書き出し（先頭に印を付けて、貼り間違いを検出しやすくする）
+  exportSave() {
+    const json = JSON.stringify(this.state);
+    return `EBI1:${btoa(unescape(encodeURIComponent(json)))}`;
+  },
+  async importSave(text) {
+    try {
+      const body = text.startsWith('EBI1:') ? text.slice(5) : text;
+      const json = decodeURIComponent(escape(atob(body.replace(/\s+/g, ''))));
+      const data = migrate(JSON.parse(json));
+      if (!data || !Array.isArray(data.tanks) || !data.shrimp) return 'セーブの形式が違います';
+      data.lastSeenAt = Math.min(data.lastSeenAt ?? Date.now(), Date.now());
+      await save(data, { immediate: true });
+      location.reload();
+      return null;
+    } catch {
+      return '読み込めませんでした。文字列が欠けていないか確認してください';
+    }
+  },
   toast(msg) { this.ui.toast(msg); },
 
   handleEvents(events) {

@@ -820,8 +820,12 @@ export function createUI(app) {
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">倉庫</div>
       <div class="stock">${Object.entries(MATERIALS).map(([k, m]) => `<div class="stock-item ${(s.items?.[k] ?? 0) ? '' : 'none'}"><img src="assets/icons/${k}.png" alt=""><span class="n">×${s.items?.[k] ?? 0}</span><span class="l">${m.name}</span></div>`).join('')}</div>
       <div class="item"><span class="ic pic"><img src="assets/icons/molt.png" alt=""></span><div class="nm">脱皮殻を売る<small>5個で ¥300（所持 ${s.items?.molt ?? 0}）</small></div><button class="buy ${(s.items?.molt ?? 0) < 5 ? 'off' : ''}" data-act="molt">売る</button></div>
+      <div class="small mute" style="font-weight:700;padding:4px 2px 0">セーブデータ</div>
+      <div class="panel" style="display:flex;flex-direction:column;gap:6px"><div class="small mute">別のスマホやPCへ水槽を引き継ぐときに使います。</div><div class="btns"><button class="btn sec" data-act="export">書き出す</button><button class="btn sec" data-act="import">読み込む</button></div></div>
       <div class="panel small mute" style="margin-top:auto">★3以上の親は売っていません。濃・縞・輝は自分で繁殖して出します。</div>
     </div>${tabs('shop')}`;
+    root.querySelector('[data-act="export"]').onclick = () => openSaveModal('export');
+    root.querySelector('[data-act="import"]').onclick = () => openSaveModal('import');
     root.querySelector('[data-gear="bucket"]').onclick = () => {
       if (s.gear?.bucket || s.money < 1200) return;
       if (!window.confirm('大きいバケツを ¥1,200 で購入しますか？')) return;
@@ -839,6 +843,35 @@ export function createUI(app) {
         app.mutate();
         app.toast(`${t.name} を設置した`);
         shop();
+      };
+    });
+  }
+
+  // ---------- セーブの書き出し・読み込み ----------
+  function openSaveModal(mode) {
+    if (mode === 'export') {
+      const text = app.exportSave();
+      openModal(`<h3>セーブを書き出す</h3><div class="small mute">この文字列を全部コピーして、別の端末の「読み込む」に貼り付けてください。</div>
+        <textarea class="save-box" readonly>${esc(text)}</textarea>
+        <button class="btn" data-act="copy">コピーする</button><div class="small mute" id="copy-msg" style="text-align:center"></div>`, (box) => {
+        const ta = box.querySelector('textarea');
+        ta.onclick = () => ta.select();
+        box.querySelector('[data-act="copy"]').onclick = async () => {
+          try { await navigator.clipboard.writeText(text); box.querySelector('#copy-msg').textContent = 'コピーしました'; }
+          catch { ta.select(); box.querySelector('#copy-msg').textContent = '選択したので長押しでコピーしてください'; }
+        };
+      });
+      return;
+    }
+    openModal(`<h3>セーブを読み込む</h3><div class="small" style="color:var(--red);font-weight:700">いまの水槽は上書きされます。</div>
+      <textarea class="save-box" placeholder="ここに貼り付け"></textarea>
+      <button class="btn red" data-act="load">読み込んで置き換える</button>`, (box) => {
+      box.querySelector('[data-act="load"]').onclick = async () => {
+        const text = box.querySelector('textarea').value.trim();
+        if (!text) { app.toast('貼り付けてください'); return; }
+        if (!window.confirm('いまのセーブを置き換えます。よろしいですか？')) return;
+        const err = await app.importSave(text);
+        if (err) app.toast(err);
       };
     });
   }
