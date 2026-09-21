@@ -607,7 +607,8 @@ export function createUI(app) {
     el.querySelectorAll('.rc').forEach((b) => {
       b.onclick = () => { if (b.classList.contains('open')) return; b.classList.add('open'); opened += 1; if (opened === trip.cards.length) el.querySelector('.rec-sum').classList.add('show'); };
     });
-    el.querySelector('[data-act="close"]').onclick = () => { el.remove(); done(); };
+    // 記録を閉じたら、遠征で得たコインの演出（見返しのときは出さない）
+    el.querySelector('[data-act="close"]').onclick = () => { el.remove(); done(); if (!ev.replay && sum.yen > 0) coinFx(sum.yen); };
   }
 
   function openMoveModal(sh) {
