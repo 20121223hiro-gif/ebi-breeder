@@ -9,7 +9,7 @@ import {
   sendTrip, useLeaf, placeEquipment, removeEquipment, sellMolt,
   bucketPlace, bucketSwap, bucketRelease,
 } from './sim.js';
-import { priceOf, sellError, isLastOfSex, sell, coinHtml } from './economy.js';
+import { priceOf, sellError, isLastOfSex, sell, fmtCoin, coinHtml } from './economy.js';
 import { wantLabel, matchesWant, visitorPrice, deliver } from './visitors.js';
 import { DESTS, MATERIALS, ROLE_JA, canSend, teamBonus, tripSummary } from './river.js';
 import { TankView, getViewMode, toggleViewMode } from './render.js';
@@ -838,7 +838,7 @@ export function createUI(app) {
         const type = b.dataset.buy;
         const d = TANK_TYPES[type];
         if (s.money < d.price) return;
-        if (!window.confirm(`${d.name} を ${coinHtml(d.price)} で購入しますか？`)) return;
+        if (!window.confirm(`${d.name} を ${fmtCoin(d.price)} で購入しますか？`)) return;
         s.money -= d.price;
         const t = addTank(s, type, now());
         app.mutate();
