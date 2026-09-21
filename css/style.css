@@ -248,3 +248,24 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
   .tile canvas{height:120px}
   .grid2{grid-template-columns:1fr 1fr 1fr}
 }
+
+/* コインの増減演出（3秒） */
+.coinfx{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}
+.coinfx .fx-flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(255,240,150,.85),rgba(255,240,150,0) 60%);opacity:0}
+.coinfx .fx-pic{position:absolute;left:50%;top:42%;width:min(64%,300px);height:auto;transform:translate(-50%,-50%);filter:drop-shadow(0 8px 12px rgba(0,0,0,.35));opacity:0}
+.coinfx .fx-delta{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-weight:900;font-size:34px;color:#FFE66D;-webkit-text-stroke:2px #8A6A00;text-shadow:0 2px 0 #8A6A00;opacity:0;white-space:nowrap;animation:fxRise 2.6s .3s ease-out forwards}
+.coinfx.spend .fx-delta{color:#FF8A80;-webkit-text-stroke:2px #7a1f16;text-shadow:0 2px 0 #7a1f16}
+.coinfx .fx-pt{position:absolute;width:24px;height:24px;left:50%;top:42%;margin:-12px 0 0 -12px;opacity:0}
+.coinfx.get .fx-pic{animation:fxDrop 3s cubic-bezier(.3,1.5,.5,1) forwards}
+@keyframes fxDrop{0%{opacity:0;transform:translate(-50%,-50%) translateY(-320px) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}23%{transform:translate(-50%,-50%) translateY(-26px) scale(1.02,.96)}30%{transform:translate(-50%,-50%) translateY(0) scale(1)}35%{transform:translate(-50%,-50%) translateY(-10px)}40%{transform:translate(-50%,-50%) translateY(0)}88%{opacity:1;transform:translate(-50%,-50%) translateY(0)}100%{opacity:0;transform:translate(-50%,-50%) translateY(20px) scale(.9)}}
+.coinfx.get .fx-pt{animation:fxRain var(--d) var(--w) ease-in forwards}
+@keyframes fxRain{0%{opacity:0;transform:translate(var(--x),-240px) rotate(0)}10%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+.coinfx.get .fx-flash{animation:fxFlash .7s .4s ease-out}
+.coinfx.spend .fx-pic{animation:fxSpin 3s ease-in forwards}
+@keyframes fxSpin{0%{opacity:0;transform:translate(-50%,-50%) scale(.6) rotate(0)}8%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}55%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}100%{opacity:0;transform:translate(-50%,-50%) translateY(140px) scale(.1) rotate(720deg)}}
+.coinfx.spend .fx-pt{animation:fxSuck var(--d) var(--w) ease-in forwards}
+@keyframes fxSuck{0%{opacity:1;transform:translate(var(--x),var(--y)) scale(.8) rotate(0)}100%{opacity:0;transform:translate(0,140px) scale(.1) rotate(var(--r))}}
+.coinfx.spend .fx-flash{animation:fxFlash .6s 2.4s ease-out}
+@keyframes fxFlash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+@keyframes fxRise{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}12%{opacity:1;transform:translate(-50%,-80%) scale(1.15)}25%{transform:translate(-50%,-85%) scale(1)}80%{opacity:1;transform:translate(-50%,-130%)}100%{opacity:0;transform:translate(-50%,-160%)}}
+@media (prefers-reduced-motion:reduce){.coinfx .fx-pic,.coinfx .fx-delta{opacity:1}.coinfx .fx-pt,.coinfx .fx-flash{display:none}}

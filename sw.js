@@ -1,6 +1,6 @@
 // オフラインでも遊べるようにするサービスワーカー。
 // 画像はキャッシュ優先、HTML/JS/CSS はネットワーク優先（更新をすぐ反映）。
-const CACHE = 'ebi-breeder-v3';
+const CACHE = 'ebi-breeder-v4';
 const ASSETS = [
   ".",
   "index.html",
@@ -67,7 +67,9 @@ const ASSETS = [
   "assets/icons/wood.png",
   "assets/icons/view_side.png",
   "assets/icons/view_top.png",
-  "assets/icons/coin.png"
+  "assets/icons/coin.png",
+  "assets/fx/coin_get.png",
+  "assets/fx/coin_spend.png"
 ];
 
 self.addEventListener('install', (e) => {

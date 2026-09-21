@@ -290,6 +290,7 @@ export function createUI(app) {
       const r = sell(S(), [id], now());
       app.mutate();
       app.toast(`${r.sold[0]} を出荷 +${fmtCoin(r.total)}`);
+      coinFx(r.total);
       sheetId = null;
       render();
     };
@@ -750,6 +751,7 @@ export function createUI(app) {
         if (r.error) { app.toast(r.error); sellScreen(); return; }
         app.mutate();
         app.toast(`${v.name} に ${r.sold.length}匹 +${fmtCoin(r.total)}${r.levelUp ? ` ／ 評判 Lv${r.levelUp} に！` : ''}`);
+        coinFx(r.total);
         if (r.done) app.go('home'); else sellScreen();
         return;
       }
@@ -764,6 +766,7 @@ export function createUI(app) {
       sellSel = new Set();
       app.mutate();
       app.toast(`${r.sold.length}匹を出荷 +${fmtCoin(r.total)}`);
+      coinFx(r.total);
       sellScreen();
     };
   }
@@ -830,9 +833,9 @@ export function createUI(app) {
     root.querySelector('[data-gear="bucket"]').onclick = () => {
       if (s.gear?.bucket || s.money < 1200) return;
       if (!window.confirm('大きいバケツを 1,200コイン で購入しますか？')) return;
-      s.money -= 1200; s.gear = { ...(s.gear ?? {}), bucket: true }; app.mutate(); app.toast('大きいバケツを買った'); shop();
+      s.money -= 1200; s.gear = { ...(s.gear ?? {}), bucket: true }; app.mutate(); app.toast('大きいバケツを買った'); shop(); coinFx(-1200);
     };
-    root.querySelector('[data-act="molt"]').onclick = () => { const e = sellMolt(s); if (e) { app.toast(e); return; } app.mutate(); app.toast('脱皮殻を売った +300コイン'); shop(); };
+    root.querySelector('[data-act="molt"]').onclick = () => { const e = sellMolt(s); if (e) { app.toast(e); return; } app.mutate(); app.toast('脱皮殻を売った +300コイン'); shop(); coinFx(300); };
     root.querySelectorAll('[data-buy]').forEach((b) => {
       b.onclick = () => {
         const type = b.dataset.buy;
@@ -842,7 +845,7 @@ export function createUI(app) {
         s.money -= d.price;
         const t = addTank(s, type, now());
         app.mutate();
-        app.toast(`${t.name} を設置した`);
+        app.toast(`${t.name} を設置した`); coinFx(-d.price);
         shop();
       };
     });
@@ -916,6 +919,34 @@ export function createUI(app) {
     setTimeout(() => el.remove(), 2300);
   }
 
+  // コインの増減演出（3秒）。増: メダルの雨 / 減: 回って吸い込まれる。操作は邪魔しない
+  function coinFx(delta) {
+    const d = Math.round(delta);
+    if (!d) return;
+    root.querySelectorAll('.coinfx').forEach((e) => e.remove());
+    const kind = d > 0 ? 'get' : 'spend';
+    const el = document.createElement('div');
+    el.className = `coinfx ${kind}`;
+    el.innerHTML = `<div class="fx-flash"></div><img class="fx-pic" src="assets/fx/coin_${kind}.png" alt=""><div class="fx-delta">${d > 0 ? '+' : '−'}${Math.abs(d).toLocaleString('ja-JP')}</div>`;
+    const n = 14;
+    for (let i = 0; i < n; i += 1) {
+      const p = document.createElement('img');
+      p.src = 'assets/icons/coin.png';
+      p.className = 'fx-pt';
+      let x, y, w, dur;
+      if (kind === 'get') { x = (Math.random() - 0.5) * 280; y = 60 + Math.random() * 90; w = Math.random() * 1.6; dur = 1 + Math.random() * 0.5; }
+      else { const a = (i / n) * 6.28; const r = 60 + Math.random() * 90; x = Math.cos(a) * r; y = Math.sin(a) * r - 30; w = 1.3 + Math.random() * 0.8; dur = 0.6 + Math.random() * 0.4; }
+      p.style.setProperty('--x', `${x}px`);
+      p.style.setProperty('--y', `${y}px`);
+      p.style.setProperty('--r', `${(Math.random() - 0.5) * 720}deg`);
+      p.style.setProperty('--w', `${w}s`);
+      p.style.setProperty('--d', `${dur}s`);
+      el.appendChild(p);
+    }
+    // 呼び出し元が直後に画面を作り直す（shop()/sellScreen() など）ので、その後に載せる
+    setTimeout(() => { root.appendChild(el); setTimeout(() => el.remove(), 3000); }, 0);
+  }
+
   // ---------- Canvas の取り付け ----------
   function mountCanvases(mini) {
     views.length = 0;
@@ -933,7 +964,7 @@ export function createUI(app) {
     closeSheet(false);
     if (cur.screen !== 'tank') sheetId = null;
     // 演出（新色発見・遠征記録）は画面を作り直しても残す
-    const overlays = [...root.querySelectorAll('.reveal, .record, .depart')];
+    const overlays = [...root.querySelectorAll('.reveal, .record, .depart, .coinfx')];
     switch (cur.screen) {
       case 'tank': tank(cur.id); break;
       case 'breed': breed(cur.id, cur.params); break;
@@ -978,5 +1009,5 @@ export function createUI(app) {
     for (const v of views) { v.resize(); v.update(dt, n); v.draw(n); }
   }
 
-  return { render, refresh, frame, toast, reveal, record, replayRecord, motion };
+  return { render, refresh, frame, toast, coinFx, reveal, record, replayRecord, motion };
 }
