@@ -9,7 +9,7 @@ import {
   sendTrip, useLeaf, placeEquipment, removeEquipment, sellMolt,
   bucketPlace, bucketSwap, bucketRelease,
 } from './sim.js';
-import { priceOf, sellError, isLastOfSex, sell, fmtYen } from './economy.js';
+import { priceOf, sellError, isLastOfSex, sell, coinHtml } from './economy.js';
 import { wantLabel, matchesWant, visitorPrice, deliver } from './visitors.js';
 import { DESTS, MATERIALS, ROLE_JA, canSend, teamBonus, tripSummary } from './river.js';
 import { TankView, getViewMode, toggleViewMode } from './render.js';
@@ -61,7 +61,7 @@ export function createUI(app) {
   function top() {
     const s = S();
     const day = Math.floor((now() - s.createdAt) / 86400000) + 1;
-    return `<div class="top"><span class="money">${fmtYen(s.money)}</span><span class="rep">評判 <b>Lv${s.reputation}</b></span><span class="mute">${day}日目</span></div>`;
+    return `<div class="top"><span class="money">${coinHtml(s.money)}</span><span class="rep">評判 <b>Lv${s.reputation}</b></span><span class="mute">${day}日目</span></div>`;
   }
   function tabs(active) {
     const s = S();
@@ -87,7 +87,7 @@ export function createUI(app) {
       if (t.dirt >= 60) return { cls: '', text: `${t.name} の汚れが ${Math.round(t.dirt)}%`, go: ['tank', t.id] };
     }
     const cnt = Object.values(s.shrimp).filter((sh) => !sellError(sh, now()) && !isHidden(sh.hue) && tierOf(sh) >= 3).length;
-    if (cnt >= 3) return { cls: 'teal', text: `★3以上のエビが ${cnt}匹います。出荷で資金にできます`, go: ['sell'] };
+    if (cnt >= 3) return { cls: 'teal', text: `★3以上のエビが ${cnt}匹います。出荷でコインにできます`, go: ['sell'] };
     return null;
   }
 
@@ -133,7 +133,7 @@ export function createUI(app) {
       ${bcard}
       ${tcard}
       ${vcard}
-      <div class="grid2">${tiles}<button class="tile empty" data-go="shop"><div><img src="assets/icons/pla.png" alt="" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 4px;opacity:.8">水槽を増設<br><span class="chip" style="margin-top:6px">${fmtYen(TANK_TYPES.pla.price)}〜</span></div></button></div>
+      <div class="grid2">${tiles}<button class="tile empty" data-go="shop"><div><img src="assets/icons/pla.png" alt="" style="width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 4px;opacity:.8">水槽を増設<br><span class="chip" style="margin-top:6px">${coinHtml(TANK_TYPES.pla.price)}〜</span></div></button></div>
       <div class="panel small" style="margin-top:auto;display:flex;flex-direction:column;gap:4px">${berried.length ? `<div class="row mute" style="font-weight:700"><span class="grow">孵化の予定 ${berried.length}匹</span><span>● は世話できる段階</span></div>${hatchRows}${hatchMore}` : '<span class="mute">まだ抱卵中のエビはいません。水槽で ♂×♀ を組みましょう</span>'}</div>
     </div>${tabs('home')}`;
     mountCanvases(true);
@@ -269,7 +269,7 @@ export function createUI(app) {
       </div>
       <div class="small mute">「？」は図鑑でその色・段階を発見すると開示されます。縞は劣性なので両親が持っていると子に出ます。</div>
       <div class="btns">
-        <button class="btn sec ${sellErr ? 'off' : ''}" data-act="sell">出荷 ${fmtYen(priceOf(sh))}</button>
+        <button class="btn sec ${sellErr ? 'off' : ''}" data-act="sell">出荷 ${coinHtml(priceOf(sh))}</button>
         <button class="btn sec" data-act="move">別の水槽へ</button>
         <button class="btn ${adult && sh.berriedAt == null ? '' : 'off'}" data-act="breed">繁殖に使う</button>
       </div>
@@ -286,10 +286,10 @@ export function createUI(app) {
     wrap.querySelector('[data-act="sell"]').onclick = () => {
       if (sellErr) return;
       const warn = isLastOfSex(S(), sh) ? `\n※ ${t?.name ?? ''} で最後の${sh.sex === 'm' ? '♂' : '♀'}です。売ると繁殖できなくなります。` : '';
-      if (!window.confirm(`${sh.name} を ${fmtYen(priceOf(sh))} で出荷しますか？${warn}`)) return;
+      if (!window.confirm(`${sh.name} を ${fmtCoin(priceOf(sh))} で出荷しますか？${warn}`)) return;
       const r = sell(S(), [id], now());
       app.mutate();
-      app.toast(`${r.sold[0]} を出荷 +${fmtYen(r.total)}`);
+      app.toast(`${r.sold[0]} を出荷 +${fmtCoin(r.total)}`);
       sheetId = null;
       render();
     };
@@ -456,7 +456,7 @@ export function createUI(app) {
       b.onclick = () => {
         const i = Number(b.dataset.i);
         const cands = Object.values(s.shrimp).filter((x) => !x.away && x.berriedAt == null);
-        openModal(`<h3>どのエビを川に放しますか</h3><div class="small mute">放したエビは戻りません。代わりに ${esc(bk[i].name)} がその水槽に入ります。</div>${cands.length ? cands.map((x) => `<button class="li" data-sh="${x.id}">${sp(spriteKey(x), 40)}<div class="nm">${esc(x.name)}<small>${labelOfKey(dexKey(x))} ／ ${x.sex === 'm' ? '♂' : '♀'} ／ ${esc(tankOf(x.tankId)?.name ?? '')}${isLastOfSex(s, x) ? ' ／ <span style="color:var(--amber-ink)">最後の' + (x.sex === 'm' ? '♂' : '♀') + '</span>' : ''}</small></div><span class="pr">${fmtYen(priceOf(x))}</span></button>`).join('') : '<div class="empty">放せるエビがいません</div>'}`, (box) => {
+        openModal(`<h3>どのエビを川に放しますか</h3><div class="small mute">放したエビは戻りません。代わりに ${esc(bk[i].name)} がその水槽に入ります。</div>${cands.length ? cands.map((x) => `<button class="li" data-sh="${x.id}">${sp(spriteKey(x), 40)}<div class="nm">${esc(x.name)}<small>${labelOfKey(dexKey(x))} ／ ${x.sex === 'm' ? '♂' : '♀'} ／ ${esc(tankOf(x.tankId)?.name ?? '')}${isLastOfSex(s, x) ? ' ／ <span style="color:var(--amber-ink)">最後の' + (x.sex === 'm' ? '♂' : '♀') + '</span>' : ''}</small></div><span class="pr">${coinHtml(priceOf(x))}</span></button>`).join('') : '<div class="empty">放せるエビがいません</div>'}`, (box) => {
           box.querySelectorAll('[data-sh]').forEach((sb) => {
             sb.onclick = () => {
               const x = s.shrimp[sb.dataset.sh];
@@ -588,7 +588,7 @@ export function createUI(app) {
     el.className = 'record';
     const cardHtml = trip.cards.map((c, i) => {
       let front = '';
-      if (c.type === 'find') front = `<div class="rc-ico">💰</div><div class="rc-t">${esc(c.item)}</div><div class="rc-s">+${fmtYen(c.yen)}</div>`;
+      if (c.type === 'find') front = `<div class="rc-ico"><img src="assets/icons/coin.png" alt="コイン"></div><div class="rc-t">${esc(c.item)}</div><div class="rc-s">+${coinHtml(c.yen)}</div>`;
       else if (c.type === 'material' || (c.type === 'danger' && c.item)) front = `<div class="rc-ico">🍂</div><div class="rc-t">${MATERIALS[c.item].name}</div><div class="rc-s">倉庫へ</div>`;
       else if (c.type === 'friend') front = `${sp(spriteKey(c.shrimp), 90)}<div class="rc-t">${c.boss ? 'ヌシ！' : `${esc(c.shrimp.name || '仲間')}`}</div><div class="rc-s">${c.stayed ? 'バケツも満杯で川に残った' : c.bucket ? `${labelOfKey(dexKey(c.shrimp))} ／ 水槽が満員なのでバケツで待機` : `${labelOfKey(dexKey(c.shrimp))} ／ ${esc(c.tankName ?? '')}へ`}</div>`;
       else if (c.type === 'mate') front = `<div class="rc-ico">🥚</div><div class="rc-t">野生の♂と出会った</div><div class="rc-s">${esc(s.shrimp[c.motherId]?.name ?? '')} が抱卵</div>`;
@@ -599,7 +599,7 @@ export function createUI(app) {
     const sum = tripSummary(trip);
     el.innerHTML = `<div class="rec-head"><div class="ttl">遠征記録 — ${d.name}${ev.replay ? '（見返し）' : ''}</div><div class="sub">${esc(names)} が帰ってきた。宝箱をタップして開けよう</div></div>
       <div class="rc-grid">${cardHtml}</div>
-      <div class="rec-sum panel small">まとめ：${fmtYen(sum.yen)} ／ 素材 ${sum.materials} ／ 仲間 ${sum.friends}${sum.mate ? ' ／ 抱卵あり' : ''}</div>
+      <div class="rec-sum panel small">まとめ：${coinHtml(sum.yen)} ／ 素材 ${sum.materials} ／ 仲間 ${sum.friends}${sum.mate ? ' ／ 抱卵あり' : ''}</div>
       <button class="btn red" data-act="close">閉じる</button>`;
     root.appendChild(el);
     let opened = 0;
@@ -719,16 +719,16 @@ export function createUI(app) {
       const err = errFn(sh);
       const last = !err && isLastOfSex(s, sh) ? `<span class="chip amber">最後の${sh.sex === 'm' ? '♂' : '♀'}</span>` : '';
       const rare = !err && tierOf(sh) >= 4 ? '<span class="chip amber">貴重</span>' : '';
-      return `<button class="li ${err ? 'off' : ''}" data-sh="${sh.id}"><span class="cb ${sellSel.has(sh.id) ? 'on' : ''}"></span>${sp(spriteKey(sh), 40)}<div class="nm">${esc(sh.name)}<small>${labelOfKey(dexKey(sh))} ／ ${sh.sex === 'm' ? '♂' : '♀'} ／ ${esc(tankOf(sh.tankId)?.name ?? '')}${err ? ` ／ <span style="color:var(--red)">${err.replace('は出荷できません', '')}</span>` : ''} ${last}${rare}</small></div><span class="pr">${err ? '—' : fmtYen(priceFn(sh))}</span></button>`;
+      return `<button class="li ${err ? 'off' : ''}" data-sh="${sh.id}"><span class="cb ${sellSel.has(sh.id) ? 'on' : ''}"></span>${sp(spriteKey(sh), 40)}<div class="nm">${esc(sh.name)}<small>${labelOfKey(dexKey(sh))} ／ ${sh.sex === 'm' ? '♂' : '♀'} ／ ${esc(tankOf(sh.tankId)?.name ?? '')}${err ? ` ／ <span style="color:var(--red)">${err.replace('は出荷できません', '')}</span>` : ''} ${last}${rare}</small></div><span class="pr">${err ? '—' : coinHtml(priceFn(sh))}</span></button>`;
     }).join('');
     const header = vmode
       ? `<div class="alert teal"><span class="grow"><b>${esc(v.name)}</b>：${wantLabel(v.want)} ／ 相場の ${v.want.mult}倍<br><span class="small">あと ${remainCount}匹 ／ <span data-remain="${v.leavesAt}">${fmtRemain(v.leavesAt - now())}</span>で帰ります</span></span><button class="chip off" data-mode="free">自由出荷へ</button></div>`
-      : `<div class="row small" style="font-weight:700;padding:0 2px"><span class="grow">自由出荷</span><span class="mute">相場：${[1, 2, 3, 4].map((t) => `★${t} ${fmtYen(120 * TIER_MULT[t])}`).join(' ／ ')}</span></div>${v ? `<button class="alert teal" data-mode="visitor"><span class="grow"><b>${esc(v.name)}</b> が待っています：${wantLabel(v.want)}（相場の ${v.want.mult}倍）</span><span>›</span></button>` : ''}`;
+      : `<div class="row small" style="font-weight:700;padding:0 2px"><span class="grow" style="white-space:nowrap">自由出荷</span><span class="mute" style="text-align:right">相場：${[1, 2, 3, 4].map((t) => `★${t} ${coinHtml(120 * TIER_MULT[t])}`).join(' ／ ')}</span></div>${v ? `<button class="alert teal" data-mode="visitor"><span class="grow"><b>${esc(v.name)}</b> が待っています：${wantLabel(v.want)}（相場の ${v.want.mult}倍）</span><span>›</span></button>` : ''}`;
     root.innerHTML = `${top()}<div class="body">
       ${header}
       <div class="chips"><button class="chip ${sellTank === 'all' ? '' : 'off'}" data-tank="all">すべて</button>${s.tanks.map((t) => `<button class="chip ${sellTank === t.id ? '' : 'off'}" data-tank="${t.id}">${esc(t.name)}</button>`).join('')}</div>
       ${rows || '<div class="empty">出荷できるエビがいません</div>'}
-      <div class="sticky"><div class="grow"><div style="font-weight:700">選択 ${sellSel.size}匹${vmode ? ` / ${remainCount}` : ''}</div><div class="small mute">合計 ${fmtYen(total)}</div></div><button class="btn ${sellSel.size ? '' : 'off'}" data-act="sell">${vmode ? '客に渡す' : '出荷する'}</button></div>
+      <div class="sticky"><div class="grow"><div style="font-weight:700">選択 ${sellSel.size}匹${vmode ? ` / ${remainCount}` : ''}</div><div class="small mute">合計 ${coinHtml(total)}</div></div><button class="btn ${sellSel.size ? '' : 'off'}" data-act="sell">${vmode ? '客に渡す' : '出荷する'}</button></div>
     </div>${tabs('sell')}`;
     root.querySelectorAll('[data-mode]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); sellSel = new Set(); app.go('sell', b.dataset.mode === 'visitor' ? 'visitor' : undefined); }; });
     root.querySelectorAll('[data-tank]').forEach((b) => { b.onclick = () => { sellTank = b.dataset.tank; sellScreen(); }; });
@@ -749,21 +749,21 @@ export function createUI(app) {
         sellSel = new Set();
         if (r.error) { app.toast(r.error); sellScreen(); return; }
         app.mutate();
-        app.toast(`${v.name} に ${r.sold.length}匹 +${fmtYen(r.total)}${r.levelUp ? ` ／ 評判 Lv${r.levelUp} に！` : ''}`);
+        app.toast(`${v.name} に ${r.sold.length}匹 +${fmtCoin(r.total)}${r.levelUp ? ` ／ 評判 Lv${r.levelUp} に！` : ''}`);
         if (r.done) app.go('home'); else sellScreen();
         return;
       }
       const names = [...sellSel].map((id) => s.shrimp[id]);
       const lastWarn = names.filter((sh) => isLastOfSex(s, sh)).map((sh) => sh.name);
       const rareWarn = names.filter((sh) => tierOf(sh) >= 4).map((sh) => sh.name);
-      let msg = `${sellSel.size}匹を ${fmtYen(total)} で出荷しますか？`;
+      let msg = `${sellSel.size}匹を ${fmtCoin(total)} で出荷しますか？`;
       if (lastWarn.length) msg += `\n※ 水槽で最後の♂/♀: ${lastWarn.join('、')}`;
       if (rareWarn.length) msg += `\n※ ★4以上の貴重な個体: ${rareWarn.join('、')}`;
       if (!window.confirm(msg)) return;
       const r = sell(s, [...sellSel], now());
       sellSel = new Set();
       app.mutate();
-      app.toast(`${r.sold.length}匹を出荷 +${fmtYen(r.total)}`);
+      app.toast(`${r.sold.length}匹を出荷 +${fmtCoin(r.total)}`);
       sellScreen();
     };
   }
@@ -789,7 +789,7 @@ export function createUI(app) {
       b.onclick = () => {
         const k = b.dataset.key;
         const d = s.dex[k];
-        openModal(`<h3>${labelOfKey(k)}</h3><div style="text-align:center;padding:6px">${sp(k, 220, d ? '' : 'silhouette')}</div>${d ? `<div class="panel small">発見日：${new Date(d.foundAt).toLocaleDateString('ja-JP')}（最初の1匹：${esc(d.first)}）<br>これまでに ${d.count}匹 生まれた<br>出荷価格：${fmtYen(k.startsWith('h_') ? 720 : 120 * TIER_MULT[k[1]])}</div>` : '<div class="panel small mute">まだ発見していません。' + hintFor(k) + '</div>'}`);
+        openModal(`<h3>${labelOfKey(k)}</h3><div style="text-align:center;padding:6px">${sp(k, 220, d ? '' : 'silhouette')}</div>${d ? `<div class="panel small">発見日：${new Date(d.foundAt).toLocaleDateString('ja-JP')}（最初の1匹：${esc(d.first)}）<br>これまでに ${d.count}匹 生まれた<br>出荷価格：${coinHtml(k.startsWith('h_') ? 720 : 120 * TIER_MULT[k[1]])}</div>` : '<div class="panel small mute">まだ発見していません。' + hintFor(k) + '</div>'}`);
       };
     });
   }
@@ -810,17 +810,17 @@ export function createUI(app) {
       const d = TANK_TYPES[type];
       const locked = type === 's60' && s.reputation < 5;
       const cant = s.money < d.price;
-      return `<div class="item"><span class="ic pic"><img src="assets/icons/${type}.png" alt=""></span><div class="nm">${d.name}<small>${d.cap}匹まで${locked ? ' ／ 評判Lv5で解放' : ''}</small></div><button class="buy ${locked || cant ? 'off' : ''}" data-buy="${type}">${locked ? 'Lv5' : fmtYen(d.price)}</button></div>`;
+      return `<div class="item"><span class="ic pic"><img src="assets/icons/${type}.png" alt=""></span><div class="nm">${d.name}<small>${d.cap}匹まで${locked ? ' ／ 評判Lv5で解放' : ''}</small></div><button class="buy ${locked || cant ? 'off' : ''}" data-buy="${type}">${locked ? 'Lv5' : coinHtml(d.price)}</button></div>`;
     };
-    root.innerHTML = `<div class="top"><span style="font-weight:700;font-size:16px">ショップ</span><span class="money" style="font-weight:700">${fmtYen(s.money)}</span></div>
+    root.innerHTML = `<div class="top"><span style="font-weight:700;font-size:16px">ショップ</span><span class="money" style="font-weight:700">${coinHtml(s.money)}</span></div>
     <div class="body">
       <div class="small mute" style="font-weight:700;padding:0 2px">水槽</div>
       ${item('pla')}${item('s30')}${item('s60')}
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">遠征の道具</div>
-      <div class="item"><span class="ic pic"><img src="assets/icons/bucket.png" alt=""></span><div class="nm">大きいバケツ<small>連れて帰れる仲間が +1匹</small></div><button class="buy ${s.gear?.bucket ? 'off' : s.money < 1200 ? 'off' : ''}" data-gear="bucket">${s.gear?.bucket ? '購入済み' : fmtYen(1200)}</button></div>
+      <div class="item"><span class="ic pic"><img src="assets/icons/bucket.png" alt=""></span><div class="nm">大きいバケツ<small>連れて帰れる仲間が +1匹</small></div><button class="buy ${s.gear?.bucket ? 'off' : s.money < 1200 ? 'off' : ''}" data-gear="bucket">${s.gear?.bucket ? '購入済み' : coinHtml(1200)}</button></div>
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">倉庫</div>
       <div class="stock">${Object.entries(MATERIALS).map(([k, m]) => `<div class="stock-item ${(s.items?.[k] ?? 0) ? '' : 'none'}"><img src="assets/icons/${k}.png" alt=""><span class="n">×${s.items?.[k] ?? 0}</span><span class="l">${m.name}</span></div>`).join('')}</div>
-      <div class="item"><span class="ic pic"><img src="assets/icons/molt.png" alt=""></span><div class="nm">脱皮殻を売る<small>5個で ¥300（所持 ${s.items?.molt ?? 0}）</small></div><button class="buy ${(s.items?.molt ?? 0) < 5 ? 'off' : ''}" data-act="molt">売る</button></div>
+      <div class="item"><span class="ic pic"><img src="assets/icons/molt.png" alt=""></span><div class="nm">脱皮殻を売る<small>5個で ${coinHtml(300)}（所持 ${s.items?.molt ?? 0}）</small></div><button class="buy ${(s.items?.molt ?? 0) < 5 ? 'off' : ''}" data-act="molt">売る</button></div>
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">セーブデータ</div>
       <div class="panel" style="display:flex;flex-direction:column;gap:6px"><div class="small mute">別のスマホやPCへ水槽を引き継ぐときに使います。</div><div class="btns"><button class="btn sec" data-act="export">書き出す</button><button class="btn sec" data-act="import">読み込む</button></div></div>
       <div class="panel small mute" style="margin-top:auto">★3以上の親は売っていません。濃・縞・輝は自分で繁殖して出します。</div>
@@ -829,16 +829,16 @@ export function createUI(app) {
     root.querySelector('[data-act="import"]').onclick = () => openSaveModal('import');
     root.querySelector('[data-gear="bucket"]').onclick = () => {
       if (s.gear?.bucket || s.money < 1200) return;
-      if (!window.confirm('大きいバケツを ¥1,200 で購入しますか？')) return;
+      if (!window.confirm('大きいバケツを 1,200コイン で購入しますか？')) return;
       s.money -= 1200; s.gear = { ...(s.gear ?? {}), bucket: true }; app.mutate(); app.toast('大きいバケツを買った'); shop();
     };
-    root.querySelector('[data-act="molt"]').onclick = () => { const e = sellMolt(s); if (e) { app.toast(e); return; } app.mutate(); app.toast('脱皮殻を売った +¥300'); shop(); };
+    root.querySelector('[data-act="molt"]').onclick = () => { const e = sellMolt(s); if (e) { app.toast(e); return; } app.mutate(); app.toast('脱皮殻を売った +300コイン'); shop(); };
     root.querySelectorAll('[data-buy]').forEach((b) => {
       b.onclick = () => {
         const type = b.dataset.buy;
         const d = TANK_TYPES[type];
         if (s.money < d.price) return;
-        if (!window.confirm(`${d.name} を ${fmtYen(d.price)} で購入しますか？`)) return;
+        if (!window.confirm(`${d.name} を ${coinHtml(d.price)} で購入しますか？`)) return;
         s.money -= d.price;
         const t = addTank(s, type, now());
         app.mutate();

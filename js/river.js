@@ -21,7 +21,7 @@ export const MATERIALS = {
   wood: { name: '流木', desc: '設備スロットに置くと汚れの進みが −10%', slot: true, dirt: 0.10 },
   stone: { name: '丸い石', desc: '設備スロットに置くと汚れの進みが −10%', slot: true, dirt: 0.10 },
   snail: { name: 'タニシ', desc: '設備スロットに置くと苔を食べて汚れの進みが −15%', slot: true, dirt: 0.15 },
-  molt: { name: '脱皮殻', desc: '5個で ¥300 に売れる', slot: false },
+  molt: { name: '脱皮殻', desc: '5個で 300コイン に売れる', slot: false },
 };
 
 export const FINDS = ['きれいな石', 'ビー玉', '古い貝殻', '陶器のかけら', '川砂利'];

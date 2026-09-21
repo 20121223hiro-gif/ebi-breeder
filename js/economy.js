@@ -44,4 +44,6 @@ export function sell(state, ids, now) {
   return { total, sold };
 }
 
-export function fmtYen(n) { return `¥${Math.round(n).toLocaleString('ja-JP')}`; }
+// 通貨は「コイン」。数字はそのまま（レートは変えない）。画面用はメダルの絵付き、確認ダイアログ・トースト・ログ用は文字だけ
+export function fmtCoin(n) { return `${Math.round(n).toLocaleString('ja-JP')}コイン`; }
+export function coinHtml(n) { return `<span class="coin"><img src="assets/icons/coin.png" alt="コイン">${Math.round(n).toLocaleString('ja-JP')}</span>`; }

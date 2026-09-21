@@ -15,6 +15,9 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 
 .top{display:flex;justify-content:space-between;align-items:center;padding:calc(10px + var(--sat)) 16px 8px;font-weight:700;font-size:14px}
 .top .money{color:var(--teal)}
+.coin{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;vertical-align:baseline}
+.coin img{height:1.15em;width:auto;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2))}
+.rc-ico img{width:44px;height:44px;object-fit:contain}
 .top .rep{color:var(--mute);font-weight:500}
 .top .rep b{color:var(--amber)}
 .head{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--sat)) 14px 8px;font-weight:700;font-size:16px}

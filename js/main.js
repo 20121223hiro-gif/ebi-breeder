@@ -74,7 +74,7 @@ const app = {
         s.log.unshift({ at: ev.at, text: '汚れがひどくて客が入らなかった' });
       } else if (ev.type === 'trip_return') {
         const a = ev.applied;
-        s.log.unshift({ at: ev.at, text: `遠征から帰還：¥${a.yen} ／ 素材${a.items.length} ／ 仲間${a.friends.length}${a.bucket?.length ? ` ／ バケツで${a.bucket.length}匹待機` : ''}${a.mate ? ` ／ ${a.mate}が抱卵` : ''}` });
+        s.log.unshift({ at: ev.at, text: `遠征から帰還：${a.yen}コイン ／ 素材${a.items.length} ／ 仲間${a.friends.length}${a.bucket?.length ? ` ／ バケツで${a.bucket.length}匹待機` : ''}${a.mate ? ` ／ ${a.mate}が抱卵` : ''}` });
         this.recordQueue.push(ev);
         for (const key of a.newKeys) this.revealQueue.push({ key, name: s.dex[key]?.first ?? '', tankName: '川', mother: '野生', father: '野生' });
       }
