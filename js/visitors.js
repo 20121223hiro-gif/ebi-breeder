@@ -58,8 +58,9 @@ export function genWant(state, rng) {
   }
   let count = hue === null ? 2 + Math.floor(rng() * 3) : 1 + Math.floor(rng() * 2);
   if (hue === null) {
-    // 色を問わない客は、手持ちの成体数を超えて要求しない
-    const adults = owned.filter((sh) => sh.adultAt <= (s.lastSeenAt ?? 0) && sh.berriedAt == null).length;
+    // 色を問わない客は、手持ちの「渡せる成体」数を超えて要求しない（段階の条件も含めて数える）
+    const adults = owned.filter((sh) => sh.adultAt <= (s.lastSeenAt ?? 0) && sh.berriedAt == null && !sh.away
+      && (isHidden(sh.hue) ? (sh.hue !== 'clear' || minTier <= 1) : tierOf(sh) >= minTier)).length;
     count = Math.max(1, Math.min(count, adults));
   }
   const mult = 1.5 + minTier * 0.4 + (hue ? 0.3 : 0) + rng() * 0.3; // 1.5〜3.3
