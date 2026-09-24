@@ -166,7 +166,7 @@ export function createUI(app) {
       ? `<button class="tank-arrow left ${prev ? '' : 'off'}" ${prev ? `data-go="tank" data-id="${prev.id}"` : ''} aria-label="前の水槽">‹</button><button class="tank-arrow right ${next ? '' : 'off'}" ${next ? `data-go="tank" data-id="${next.id}"` : ''} aria-label="次の水槽">›</button>`
       : '';
     const upgradable = !!UPGRADE_PATH[t.type];
-    root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>${esc(t.name)}<span class="cnt">${list.length} / ${t.cap}匹</span>${upgradable ? '<button class="up-btn" data-act="upgrade" aria-label="水槽を大きくする" title="水槽を大きくする"><img src="assets/icons/upgrade.png" alt=""></button>' : ''}</div>
+    root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>${esc(t.name)}<span class="cnt">${list.length} / ${t.cap}匹</span></div>
     <div class="body">
       ${switcher}
       <div style="position:relative"><canvas class="tank-canvas" data-tank="${t.id}"></canvas>${arrows}<span class="chip" style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85)">${list.length ? 'エビをタップで個体カード' : 'エビがいません'}</span><button class="view-btn" data-act="view" aria-label="${getViewMode() === 'top' ? '横から見る' : '上から見る'}" title="${getViewMode() === 'top' ? '横から見る' : '上から見る'}"><img src="assets/icons/view_${getViewMode() === 'top' ? 'side' : 'top'}.png" alt=""></button></div>
@@ -176,7 +176,7 @@ export function createUI(app) {
         <div class="gauge"><span class="lab">水温</span><div class="bar"><i class="${t.temp >= 29 ? 'bad' : t.temp >= 28 ? 'warn' : ''}" style="width:${(t.temp / 35) * 100}%"></i></div><span class="val">${t.temp}℃</span></div>
       </div>
       <div class="row small mute" style="padding:0 2px"><span class="grow">設備 ${(t.equipment ?? []).length} / 3</span>${t.leafUntil && t.leafUntil > now() ? `<span class="chip">落ち葉 <span data-remain="${t.leafUntil}">${fmtRemain(t.leafUntil - now())}</span></span>` : ''}</div>
-      <div class="slots">${[0, 1, 2].map((i) => { const e = (t.equipment ?? [])[i]; return e ? `<button class="slot pic" data-eq="${i}"><img src="assets/icons/${e.type}.png" alt="">${MATERIALS[e.type].name}</button>` : '<button class="slot add" data-eq="add">＋ 追加</button>'; }).join('')}</div>
+      <div class="slots">${[0, 1, 2].map((i) => { const e = (t.equipment ?? [])[i]; return e ? `<button class="slot pic" data-eq="${i}"><img src="assets/icons/${e.type}.png" alt="">${MATERIALS[e.type].name}</button>` : '<button class="slot add" data-eq="add">＋ 追加</button>'; }).join('')}${upgradable ? '<button class="slot up" data-act="upgrade" aria-label="水槽を大きくする" title="水槽を大きくする"><img src="assets/icons/upgrade.png" alt=""></button>' : ''}</div>
       <div class="icon-btns" style="margin-top:auto">
         <button class="ibtn" data-act="feed" aria-label="餌やり" title="餌やり"><img src="assets/icons/feed.png" alt=""></button>
         <button class="ibtn" data-act="water" aria-label="換水" title="換水"><img src="assets/icons/water.png" alt=""></button>

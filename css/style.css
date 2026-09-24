@@ -72,8 +72,8 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .tank-switch::-webkit-scrollbar{display:none}
 .tank-switch .chip{flex:none;min-height:32px;padding:4px 12px;font-size:12px}
 .tank-switch .chip .mute{margin-left:5px}
-.up-btn{width:40px;height:40px;border-radius:10px;background:var(--star);display:flex;align-items:center;justify-content:center;margin-left:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);flex:none}
-.up-btn img{width:32px;height:32px;object-fit:contain;pointer-events:none}
+.slot.up{flex:0 0 52px;background:var(--star);padding:3px;display:flex;align-items:center;justify-content:center}
+.slot.up img{width:40px;height:32px;object-fit:contain;pointer-events:none}
 .upg-compare{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0}
 .upg-side{flex:1;background:var(--panel);border-radius:12px;padding:8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
 .upg-side img{width:72px;height:72px;object-fit:contain}
