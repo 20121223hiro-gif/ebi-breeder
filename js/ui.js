@@ -4,7 +4,7 @@ import {
   predictChildren, ALL_DEX_KEYS, pickName,
 } from './genetics.js';
 import {
-  T, TANK_TYPES, isAdult, feed, changeWater, pair, pairError, moveShrimp, addTank, nextHatch,
+  T, TANK_TYPES, UPGRADE_PATH, upgradeInfo, upgradeTank, isAdult, feed, changeWater, pair, pairError, moveShrimp, addTank, nextHatch,
   eggStage, careEgg, EGG_STAGES, EGG_CHOICES,
   sendTrip, useLeaf, placeEquipment, removeEquipment, sellMolt,
   bucketPlace, bucketSwap, bucketRelease,
@@ -165,7 +165,8 @@ export function createUI(app) {
     const arrows = s.tanks.length > 1
       ? `<button class="tank-arrow left ${prev ? '' : 'off'}" ${prev ? `data-go="tank" data-id="${prev.id}"` : ''} aria-label="前の水槽">‹</button><button class="tank-arrow right ${next ? '' : 'off'}" ${next ? `data-go="tank" data-id="${next.id}"` : ''} aria-label="次の水槽">›</button>`
       : '';
-    root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>${esc(t.name)}<span class="cnt">${list.length} / ${t.cap}匹</span></div>
+    const upgradable = !!UPGRADE_PATH[t.type];
+    root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>${esc(t.name)}<span class="cnt">${list.length} / ${t.cap}匹</span>${upgradable ? '<button class="up-btn" data-act="upgrade" aria-label="水槽を大きくする" title="水槽を大きくする"><img src="assets/icons/upgrade.png" alt=""></button>' : ''}</div>
     <div class="body">
       ${switcher}
       <div style="position:relative"><canvas class="tank-canvas" data-tank="${t.id}"></canvas>${arrows}<span class="chip" style="position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85)">${list.length ? 'エビをタップで個体カード' : 'エビがいません'}</span><button class="view-btn" data-act="view" aria-label="${getViewMode() === 'top' ? '横から見る' : '上から見る'}" title="${getViewMode() === 'top' ? '横から見る' : '上から見る'}"><img src="assets/icons/view_${getViewMode() === 'top' ? 'side' : 'top'}.png" alt=""></button></div>
@@ -184,6 +185,8 @@ export function createUI(app) {
       </div>
     </div>${tabs('home')}`;
     root.querySelectorAll('[data-eq]').forEach((b) => { b.onclick = () => openSlotModal(t, b.dataset.eq); });
+    const upBtn = root.querySelector('[data-act="upgrade"]');
+    if (upBtn) upBtn.onclick = () => openUpgradeModal(t, () => { render(); root.querySelector('.tank-canvas')?.classList.add('tank-pop'); });
     mountCanvases(false);
     const view = views[0];
     if (view) {
@@ -314,6 +317,41 @@ export function createUI(app) {
     const w = document.getElementById('sheet');
     if (w) w.remove();
     if (clear) { sheetId = null; if (views[0]) views[0].selectedId = null; }
+  }
+
+  // 水槽のアップグレード確認（中のエビと設備はそのまま）
+  function openUpgradeModal(t, after) {
+    const s = S();
+    const info = upgradeInfo(s, t);
+    if (!info.to) { app.toast(info.error); return; }
+    const to = TANK_TYPES[info.to];
+    const n = t.shrimpIds.length;
+    const eq = (t.equipment ?? []).length;
+    openModal(`<h3>${esc(t.name)} を大きくする</h3>
+      <div class="upg-compare">
+        <div class="upg-side"><img src="assets/icons/${t.type}.png" alt=""><div class="upg-name">${TANK_TYPES[t.type].name}</div><div class="small mute">定員 ${t.cap}匹</div></div>
+        <img class="upg-arrow" src="assets/icons/upgrade.png" alt="→">
+        <div class="upg-side"><img src="assets/icons/${info.to}.png" alt=""><div class="upg-name">${to.name}</div><div class="small mute">定員 ${to.cap}匹</div></div>
+      </div>
+      <div class="panel small" style="display:flex;flex-direction:column;gap:4px">
+        <div>🦐 エビ ${n}匹 と 設備 ${eq}つ は<b>そのまま</b></div>
+        <div>💧 水が増えて汚れが ${Math.round(t.dirt)}% → <b>${Math.round(t.dirt / 2)}%</b></div>
+        <div>📦 定員 ${t.cap}匹 → <b>${to.cap}匹</b>（新品の${to.name}と同じ値段）</div>
+      </div>
+      <button class="btn ${info.error ? 'off' : ''}" data-act="do">${coinHtml(info.price)} でアップグレード</button>
+      <div class="small mute" style="text-align:center">${info.error ?? '元のサイズには戻せません'}</div>`, (box) => {
+      box.querySelector('[data-act="do"]').onclick = () => {
+        if (info.error) return;
+        if (!window.confirm(`${t.name} を ${to.name} にアップグレードしますか？（${fmtCoin(info.price)}）`)) return;
+        const err = upgradeTank(s, t, now());
+        if (err) { app.toast(err); return; }
+        app.mutate();
+        closeModal();
+        app.toast(`${t.name} になった！ 定員 ${to.cap}匹`);
+        coinFx(-info.price);
+        after?.();
+      };
+    });
   }
 
   // 設備スロット・素材の使用
@@ -820,6 +858,8 @@ export function createUI(app) {
     <div class="body">
       <div class="small mute" style="font-weight:700;padding:0 2px">水槽</div>
       ${item('pla')}${item('s30')}${item('s60')}
+      <div class="small mute" style="font-weight:700;padding:4px 2px 0">いまの水槽を大きくする（エビと設備はそのまま）</div>
+      ${s.tanks.filter((t) => UPGRADE_PATH[t.type]).map((t) => { const info = upgradeInfo(s, t); const to = TANK_TYPES[info.to]; return `<div class="item"><span class="ic pic"><img src="assets/icons/upgrade.png" alt=""></span><div class="nm">${esc(t.name)} → ${to.name}<small>定員 ${t.cap} → ${to.cap}匹 ／ ${t.shrimpIds.length}匹入り${info.error ? ` ／ <span style="color:var(--amber-ink)">${info.error}</span>` : ''}</small></div><button class="buy ${info.error ? 'off' : ''}" data-upgrade="${t.id}">${info.to === 's60' && (s.reputation ?? 1) < 5 ? 'Lv5' : coinHtml(info.price)}</button></div>`; }).join('') || '<div class="panel small mute">大きくできる水槽がありません</div>'}
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">遠征の道具</div>
       <div class="item"><span class="ic pic"><img src="assets/icons/bucket.png" alt=""></span><div class="nm">大きいバケツ<small>連れて帰れる仲間が +1匹</small></div><button class="buy ${s.gear?.bucket ? 'off' : s.money < 1200 ? 'off' : ''}" data-gear="bucket">${s.gear?.bucket ? '購入済み' : coinHtml(1200)}</button></div>
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">倉庫</div>
@@ -829,6 +869,7 @@ export function createUI(app) {
       <div class="panel" style="display:flex;flex-direction:column;gap:6px"><div class="small mute">別のスマホやPCへ水槽を引き継ぐときに使います。</div><div class="btns"><button class="btn sec" data-act="export">書き出す</button><button class="btn sec" data-act="import">読み込む</button></div></div>
       <div class="panel small mute" style="margin-top:auto">★3以上の親は売っていません。濃・縞・輝は自分で繁殖して出します。</div>
     </div>${tabs('shop')}`;
+    root.querySelectorAll('[data-upgrade]').forEach((b) => { b.onclick = () => { const t = tankOf(b.dataset.upgrade); if (t) openUpgradeModal(t, () => shop()); }; });
     root.querySelector('[data-act="export"]').onclick = () => openSaveModal('export');
     root.querySelector('[data-act="import"]').onclick = () => openSaveModal('import');
     root.querySelector('[data-gear="bucket"]').onclick = () => {

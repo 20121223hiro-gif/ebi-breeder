@@ -7,7 +7,7 @@
 - `node serve.cjs` → http://localhost:15310（Windowsは `start.cmd` でも可。デスクトップにショートカットあり）
 - `npm test`（node --test、純粋関数のテスト）。ルール変更時は必ず通す
 - PWA: manifest.webmanifest / sw.js / icon-192,512。localhost では SW を登録しない（キャッシュ事故防止）
-- 公開先: 未定（GitHub Pages なら他人もURLで見られることをオーナーは把握済み）
+- 公開先: GitHub Pages https://20121223hiro-gif.github.io/ebi-breeder/ （リポジトリは PUBLIC）。2台のPCで編集するので作業前に git pull、作業後に git push
 
 ## 構成（ルールはDOMに触らない純粋関数、画面は ui.js）
 | ファイル | 役割 |
@@ -42,7 +42,8 @@
 ## 素材の作り方
 - Higgsfield gpt_image_2 で「Cute kawaii anime-style ... plain solid white background, no text」→ remove_background → PIL でトリム。エビは r2（赤★2）を参照画像に渡して色違いを作る
 - エビ32枚: assets/shrimp/{r,b,y,k,g}{1..5}.png、h_{clear,choco,white,purple,gold}.png、s_berried/s_baby
-- アイコン: assets/icons/{feed,water,river,breed,pla,s30,s60,bucket,leaf,wood,stone,snail,molt,chest_closed,chest_open}.png
+- アイコン: assets/icons/{feed,water,river,breed,pla,s30,s60,bucket,leaf,wood,stone,snail,molt,chest_closed,chest_open,upgrade}.png
+- 注意: 生成プロンプトに「no animals」を入れないと勝手にウーパールーパー等が描かれる（upgrade.png で発生）
 
 ## 水槽の見方（2026-09-20 追加）
 - 'side'(横から・従来の画像) / 'top'(上から・エビは底を這う)。水槽詳細の右上ボタン（assets/icons/view_top / view_side）で切替。店舗のミニ水槽にも効く
@@ -60,6 +61,11 @@
 - ui.coinFx(delta): 3秒のオーバーレイ .coinfx（増=メダルの雨 assets/fx/coin_get.png、減=回って吸い込まれる coin_spend.png）+ coin.png の粒子 + 増減の数字。操作は邪魔しない(pointer-events:none)。render() で退避して残す
 - 呼び出し: 個体カード出荷 / 出荷画面(客に渡す・自由出荷) / 脱皮殻売却 / 大きいバケツ購入 / 水槽購入。遠征の帰還は記録画面を「閉じる」でまとめて表示（見返しでは出さない）
 - 元絵は Desktop\エビ色ブリーダー_コイン演出案（gpt_image_2_5 で4案生成→白背景を Pillow で透過。オーナーは両方とも案2を選択）
+
+## 水槽のアップグレード（2026-09-24）
+- sim.js `UPGRADE_PATH`（pla→s30→s60）、`upgradeInfo`、`upgradeTank`。価格は新品と同額（C案: 3,000 / 12,000、60cmは評判Lv5）— オーナーがA(差額)/B(差額+手間賃)/C から C を選んだ
+- 中のエビ・設備・落ち葉効果・名前の記号はそのまま。定員だけ変わり、汚れは半減（水が増えて薄まる）。元には戻せない
+- 入口は2つ: 水槽詳細のヘッダー右の絵ボタン（assets/icons/upgrade.png）と、ショップの「いまの水槽を大きくする」一覧。確認モーダル→ confirm → coinFx(−価格) → 水槽が一瞬ふくらむ .tank-pop
 
 ## デバッグ
 ```js

@@ -72,6 +72,15 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .tank-switch::-webkit-scrollbar{display:none}
 .tank-switch .chip{flex:none;min-height:32px;padding:4px 12px;font-size:12px}
 .tank-switch .chip .mute{margin-left:5px}
+.up-btn{width:40px;height:40px;border-radius:10px;background:var(--star);display:flex;align-items:center;justify-content:center;margin-left:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);flex:none}
+.up-btn img{width:32px;height:32px;object-fit:contain;pointer-events:none}
+.upg-compare{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0}
+.upg-side{flex:1;background:var(--panel);border-radius:12px;padding:8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.upg-side img{width:72px;height:72px;object-fit:contain}
+.upg-name{font-weight:700;font-size:13px}
+.upg-arrow{width:44px;height:44px;object-fit:contain;flex:none}
+.tank-pop{animation:tankPop .6s ease-out}
+@keyframes tankPop{0%{transform:scale(1)}35%{transform:scale(1.06)}70%{transform:scale(.98)}100%{transform:scale(1)}}
 .icon-btns{display:flex;gap:8px}
 .ibtn{flex:1;min-height:64px;border-radius:14px;background:var(--panel);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .ibtn img{width:46px;height:46px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.15))}

@@ -384,6 +384,33 @@ export function addTank(state, type, now) {
   return tank;
 }
 
+// ---------- 水槽のアップグレード（中のエビと設備はそのまま、新品と同額） ----------
+export const UPGRADE_PATH = { pla: 's30', s30: 's60' };
+
+// アップグレードできるか。{ to, price } か { error }
+export function upgradeInfo(state, tank) {
+  const to = UPGRADE_PATH[tank.type];
+  if (!to) return { error: 'これ以上大きくできません' };
+  const def = TANK_TYPES[to];
+  if (to === 's60' && (state.reputation ?? 1) < 5) return { to, price: def.price, error: '評判 Lv5 で解放されます' };
+  if (state.money < def.price) return { to, price: def.price, error: 'コインが足りません' };
+  return { to, price: def.price };
+}
+
+export function upgradeTank(state, tank, now) {
+  const info = upgradeInfo(state, tank);
+  if (info.error) return info.error;
+  const def = TANK_TYPES[info.to];
+  state.money -= info.price;
+  const letter = tank.name.trim().slice(-1);
+  tank.type = info.to;
+  tank.cap = def.cap;
+  tank.name = `${def.name} ${/^[A-Z]$/.test(letter) ? letter : String.fromCharCode(65 + state.tanks.indexOf(tank))}`;
+  tank.dirt = Math.round(tank.dirt / 2);   // 水が増えて薄まる
+  tank.upgradedAt = now;
+  return null;
+}
+
 // 次に起きる孵化（最も早いもの）
 export function nextHatch(state) {
   let best = null;

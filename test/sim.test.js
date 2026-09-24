@@ -117,3 +117,34 @@ test('セーブの版管理', () => {
   const d = migrate({ version: 1, tanks: [], shrimp: {} });
   assert.equal(d.flags.firstBreedDone, false);
 });
+
+test('水槽のアップグレード: エビと設備はそのまま、定員と名前が変わり汚れ半減', async () => {
+  const { upgradeInfo, upgradeTank, placeEquipment } = await import('../js/sim.js');
+  const s = newGame(0, seeded(1));
+  const t = s.tanks[0];
+  s.items = { wood: 1 };
+  placeEquipment(s, t, 'wood');
+  t.dirt = 62;
+  // コイン不足
+  assert.equal(upgradeInfo(s, t).error, 'コインが足りません');
+  s.money = 3000;
+  assert.deepEqual(upgradeInfo(s, t), { to: 's30', price: 3000 });
+  const ids = [...t.shrimpIds];
+  assert.equal(upgradeTank(s, t, 0), null);
+  assert.equal(s.money, 0);
+  assert.equal(t.type, 's30');
+  assert.equal(t.cap, 20);
+  assert.equal(t.name, '30cm水槽 A');
+  assert.deepEqual(t.shrimpIds, ids);
+  assert.equal(t.equipment.length, 1);
+  assert.equal(t.dirt, 31);
+  // 60cm は評判Lv5が必要
+  s.money = 20000;
+  assert.equal(upgradeInfo(s, t).error, '評判 Lv5 で解放されます');
+  s.reputation = 5;
+  assert.equal(upgradeTank(s, t, 0), null);
+  assert.equal(t.cap, 60);
+  assert.equal(t.name, '60cm水槽 A');
+  assert.equal(s.money, 8000);
+  assert.equal(upgradeInfo(s, t).error, 'これ以上大きくできません');
+});
