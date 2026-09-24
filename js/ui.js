@@ -858,8 +858,7 @@ export function createUI(app) {
     <div class="body">
       <div class="small mute" style="font-weight:700;padding:0 2px">水槽</div>
       ${item('pla')}${item('s30')}${item('s60')}
-      <div class="small mute" style="font-weight:700;padding:4px 2px 0">いまの水槽を大きくする（エビと設備はそのまま）</div>
-      ${s.tanks.filter((t) => UPGRADE_PATH[t.type]).map((t) => { const info = upgradeInfo(s, t); const to = TANK_TYPES[info.to]; return `<div class="item"><span class="ic pic"><img src="assets/icons/upgrade.png" alt=""></span><div class="nm">${esc(t.name)} → ${to.name}<small>定員 ${t.cap} → ${to.cap}匹 ／ ${t.shrimpIds.length}匹入り${info.error ? ` ／ <span style="color:var(--amber-ink)">${info.error}</span>` : ''}</small></div><button class="buy ${info.error ? 'off' : ''}" data-upgrade="${t.id}">${info.to === 's60' && (s.reputation ?? 1) < 5 ? 'Lv5' : coinHtml(info.price)}</button></div>`; }).join('') || '<div class="panel small mute">大きくできる水槽がありません</div>'}
+      <!-- 「いまの水槽を大きくする」はショップでは非表示（水槽画面のボタンから行う） -->
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">遠征の道具</div>
       <div class="item"><span class="ic pic"><img src="assets/icons/bucket.png" alt=""></span><div class="nm">大きいバケツ<small>連れて帰れる仲間が +1匹</small></div><button class="buy ${s.gear?.bucket ? 'off' : s.money < 1200 ? 'off' : ''}" data-gear="bucket">${s.gear?.bucket ? '購入済み' : coinHtml(1200)}</button></div>
       <div class="small mute" style="font-weight:700;padding:4px 2px 0">倉庫</div>
