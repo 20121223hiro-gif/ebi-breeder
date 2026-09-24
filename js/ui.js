@@ -740,6 +740,8 @@ export function createUI(app) {
   // ---------- 画面: 出荷 ----------
   let sellSel = new Set();
   let sellTank = 'all';
+  let sellHue = 'all';     // 色の絞り込み
+  let sellSort = 'price';  // 並び順: price / color / tier
   function sellScreen() {
     const s = S();
     const v = s.visitor;
@@ -751,10 +753,18 @@ export function createUI(app) {
       if (e || !vmode) return e;
       return matchesWant(sh, v.want, now()) ? null : '希望に合いません';
     };
-    const all = Object.values(s.shrimp).filter((sh) => sellTank === 'all' || sh.tankId === sellTank);
-    const list = all.sort((a, b) => (errFn(a) ? 1 : 0) - (errFn(b) ? 1 : 0) || priceFn(b) - priceFn(a));
+    const HUE_ORDER = ['red', 'blue', 'yellow', 'black', 'green', 'clear', 'choco', 'white', 'purple', 'gold'];
+    const hueOk = (sh) => sellHue === 'all' || (sellHue === 'hidden' ? ['choco', 'white', 'purple', 'gold'].includes(sh.hue) : sh.hue === sellHue);
+    const all = Object.values(s.shrimp).filter((sh) => (sellTank === 'all' || sh.tankId === sellTank) && hueOk(sh));
+    const cmp = sellSort === 'color'
+      ? (a, b) => HUE_ORDER.indexOf(a.hue) - HUE_ORDER.indexOf(b.hue) || tierOf(b) - tierOf(a) || priceFn(b) - priceFn(a)
+      : sellSort === 'tier'
+        ? (a, b) => tierOf(b) - tierOf(a) || priceFn(b) - priceFn(a)
+        : (a, b) => priceFn(b) - priceFn(a);
+    const list = all.sort((a, b) => (errFn(a) ? 1 : 0) - (errFn(b) ? 1 : 0) || cmp(a, b));
     for (const id of [...sellSel]) if (!s.shrimp[id] || errFn(s.shrimp[id])) sellSel.delete(id);
-    const total = [...sellSel].reduce((a, id) => a + priceFn(s.shrimp[id]), 0);
+    const totalOf = () => [...sellSel].reduce((a, id) => a + priceFn(s.shrimp[id]), 0);
+    const total = totalOf();
     const rows = list.map((sh) => {
       const err = errFn(sh);
       const last = !err && isLastOfSex(s, sh) ? `<span class="chip amber">最後の${sh.sex === 'm' ? '♂' : '♀'}</span>` : '';
@@ -767,11 +777,24 @@ export function createUI(app) {
     root.innerHTML = `${top()}<div class="body">
       ${header}
       <div class="chips"><button class="chip ${sellTank === 'all' ? '' : 'off'}" data-tank="all">すべて</button>${s.tanks.map((t) => `<button class="chip ${sellTank === t.id ? '' : 'off'}" data-tank="${t.id}">${esc(t.name)}</button>`).join('')}</div>
-      ${rows || '<div class="empty">出荷できるエビがいません</div>'}
-      <div class="sticky"><div class="grow"><div style="font-weight:700">選択 ${sellSel.size}匹${vmode ? ` / ${remainCount}` : ''}</div><div class="small mute">合計 ${coinHtml(total)}</div></div><button class="btn ${sellSel.size ? '' : 'off'}" data-act="sell">${vmode ? '客に渡す' : '出荷する'}</button></div>
+      <div class="chips sell-hues"><span class="small" style="align-self:center;font-weight:700">色</span><button class="chip ${sellHue === 'all' ? '' : 'off'}" data-hue="all">すべて</button>${['red', 'blue', 'yellow', 'black', 'green', 'clear'].map((h) => `<button class="chip ${sellHue === h ? '' : 'off'}" data-hue="${h}"><i class="hue-dot hue-${h}"></i>${HUE_JA[h]}</button>`).join('')}<button class="chip ${sellHue === 'hidden' ? '' : 'off'}" data-hue="hidden">隠し色</button></div>
+      <div class="chips"><span class="small" style="align-self:center;font-weight:700">並び</span><button class="chip ${sellSort === 'price' ? '' : 'off'}" data-sort="price">値段が高い順</button><button class="chip ${sellSort === 'color' ? '' : 'off'}" data-sort="color">色ごと</button><button class="chip ${sellSort === 'tier' ? '' : 'off'}" data-sort="tier">★が高い順</button></div>
+      <div class="sell-list">${rows || '<div class="empty">出荷できるエビがいません</div>'}</div>
+      <div class="sticky"><div class="grow"><div style="font-weight:700" data-sel-count>選択 ${sellSel.size}匹${vmode ? ` / ${remainCount}` : ''}</div><div class="small mute" data-sel-total>合計 ${coinHtml(total)}</div></div><button class="btn ${sellSel.size ? '' : 'off'}" data-act="sell">${vmode ? '客に渡す' : '出荷する'}</button></div>
     </div>${tabs('sell')}`;
     root.querySelectorAll('[data-mode]').forEach((b) => { b.onclick = (e) => { e.stopPropagation(); sellSel = new Set(); app.go('sell', b.dataset.mode === 'visitor' ? 'visitor' : undefined); }; });
     root.querySelectorAll('[data-tank]').forEach((b) => { b.onclick = () => { sellTank = b.dataset.tank; sellScreen(); }; });
+    root.querySelectorAll('[data-hue]').forEach((b) => { b.onclick = () => { sellHue = b.dataset.hue; sellScreen(); }; });
+    root.querySelectorAll('[data-sort]').forEach((b) => { b.onclick = () => { sellSort = b.dataset.sort; sellScreen(); }; });
+    // チェックはその場で切り替える（画面を作り直さない＝スクロール位置が飛ばない）
+    const refreshSticky = () => {
+      const c = root.querySelector('[data-sel-count]');
+      const tt = root.querySelector('[data-sel-total]');
+      const btn = root.querySelector('[data-act="sell"]');
+      if (c) c.textContent = `選択 ${sellSel.size}匹${vmode ? ` / ${remainCount}` : ''}`;
+      if (tt) tt.innerHTML = `合計 ${coinHtml(totalOf())}`;
+      if (btn) btn.classList.toggle('off', sellSel.size === 0);
+    };
     root.querySelectorAll('[data-sh]').forEach((b) => {
       b.onclick = () => {
         const id = b.dataset.sh;
@@ -779,7 +802,8 @@ export function createUI(app) {
         if (sellSel.has(id)) sellSel.delete(id);
         else if (sellSel.size < remainCount) sellSel.add(id);
         else { app.toast(`客が欲しいのは あと${remainCount}匹です`); return; }
-        sellScreen();
+        b.querySelector('.cb').classList.toggle('on', sellSel.has(id));
+        refreshSticky();
       };
     });
     root.querySelector('[data-act="sell"]').onclick = () => {
