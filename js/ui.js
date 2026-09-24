@@ -41,6 +41,7 @@ function chipsOf(sh) {
   const t = tierOf(sh);
   const tierChip = isHidden(hue) ? '<span class="chip star">隠し色</span>' : `<span class="chip star">★${t} ${TIER_JA[t]}</span>`;
   const extra = (sh.boss ? '<span class="chip amber">ヌシ</span>' : sh.wild ? '<span class="chip gray">ワイルド</span>' : '')
+    + (isHidden(hue) && sh.pat === 's' ? '<span class="chip blue">縞の遺伝子あり</span>' : '')
     + ((sh.exp ?? 0) >= 5 ? '<span class="chip">川帰り</span>' : '');
   return hueChip + tierChip + extra;
 }

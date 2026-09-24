@@ -1,5 +1,7 @@
 // 保存と読み込み。IndexedDB を使い、使えなければ localStorage に落とす。
 // セーブデータには version を持たせ、古い形式は migrate で変換する。
+import { tierOf } from './genetics.js';
+
 const DB_NAME = 'ebi-breeder';
 const STORE = 'save';
 const KEY = 'main';
@@ -40,6 +42,9 @@ export function migrate(data) {
   if (!data || typeof data !== 'object') return null;
   const d = { ...data };
   if (!d.version) d.version = 1;
+  // 保存されている段階(tier)は計算し直す（透明の縞持ちが★4になっていた不具合の後始末）
+  if (d.shrimp) for (const sh of Object.values(d.shrimp)) if (sh && sh.hue) sh.tier = tierOf(sh);
+  if (Array.isArray(d.bucket)) for (const sh of d.bucket) if (sh && sh.hue) sh.tier = tierOf(sh);
   // 将来: if (d.version === 1) { ...変換...; d.version = 2; }
   if (d.version !== SAVE_VERSION) return null;
   if (!d.flags) d.flags = { firstBreedDone: false, firstHatchDone: false };

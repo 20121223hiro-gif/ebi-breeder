@@ -64,6 +64,8 @@ export function expressPattern(alleles) {
 }
 
 export function tierOf(sh) {
+  // 透明・隠し色には段階がない（図鑑も価格も段階を見ない）。縞の遺伝子を持っていても★1扱い
+  if (HIDDEN_HUES.includes(sh.hue)) return 1;
   if (sh.shine) return 5;
   if (sh.pat === 's') return 4;
   return sh.sat;

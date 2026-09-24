@@ -108,3 +108,10 @@ test('名前は水槽内で重ならない', () => {
     used.push(n);
   }
 });
+
+test('透明・隠し色は縞や輝の遺伝子を持っていても★1扱い', () => {
+  assert.equal(tierOf({ hue: 'clear', sat: 2, pat: 's', shine: false }), 1);
+  assert.equal(tierOf({ hue: 'purple', sat: 3, pat: 's', shine: true }), 1);
+  assert.equal(dexKey({ hue: 'clear', sat: 2, pat: 's', shine: false }), 'h_clear');
+  assert.equal(tierOf({ hue: 'red', sat: 2, pat: 's', shine: false }), 4);
+});
