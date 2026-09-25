@@ -822,7 +822,7 @@ export function createUI(app) {
       const names = [...sellSel].map((id) => s.shrimp[id]);
       const lastWarn = names.filter((sh) => isLastOfSex(s, sh)).map((sh) => sh.name);
       const rareWarn = names.filter((sh) => tierOf(sh) >= 4).map((sh) => sh.name);
-      let msg = `${sellSel.size}匹を ${fmtCoin(total)} で出荷しますか？`;
+      let msg = `${sellSel.size}匹を ${fmtCoin(totalOf())} で出荷しますか？`;
       if (lastWarn.length) msg += `\n※ 水槽で最後の♂/♀: ${lastWarn.join('、')}`;
       if (rareWarn.length) msg += `\n※ ★4以上の貴重な個体: ${rareWarn.join('、')}`;
       if (!window.confirm(msg)) return;
