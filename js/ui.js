@@ -416,6 +416,8 @@ export function createUI(app) {
     const s = S();
     const t = tankOf(tankId);
     if (!t) { app.go('home'); return; }
+    // 選び直しで画面を作り直してもスクロール位置を保つ
+    const keepScroll = app.current().screen === 'river' ? (root.querySelector('.body')?.scrollTop ?? 0) : 0;
     const cands = shrimpIn(t).filter((sh) => isAdult(sh, now()) && sh.berriedAt == null);
     for (const id of [...riverSel]) if (!cands.some((c) => c.id === id)) riverSel.delete(id);
     const team = [...riverSel].map((id) => s.shrimp[id]);
@@ -457,6 +459,7 @@ export function createUI(app) {
         <div class="small mute" style="text-align:center">${errText ?? '帰ってくるまで水槽から離れます。必ず帰ってきます'}</div>
       </div>
     </div>${tabs('home')}`;
+    if (keepScroll) { const body = root.querySelector('.body'); if (body) body.scrollTop = keepScroll; }
     root.querySelectorAll('[data-dest]').forEach((el) => { el.onclick = () => { if (el.classList.contains('off')) return; riverDest = el.dataset.dest; river(tankId); }; });
     root.querySelectorAll('[data-sh]').forEach((el) => {
       el.onclick = () => {
