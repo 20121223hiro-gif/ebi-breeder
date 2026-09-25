@@ -423,7 +423,10 @@ export class TankView {
   hitTest(px, py) {
     let best = null;
     let bestD = Infinity;
+    // 位置情報(motion)は全水槽で共有しているので、いま表示している水槽のエビだけを対象にする
+    const ids = new Set(this.tank?.shrimpIds ?? []);
     for (const [id, m] of this.motion) {
+      if (!ids.has(id)) continue;
       const b = m.box;
       if (!b) continue;
       if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {

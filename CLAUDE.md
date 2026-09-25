@@ -18,7 +18,7 @@
 | js/river.js | 遠征（行き先3つ、色の得意、カード生成、ワイルド個体、素材定義） |
 | js/economy.js | 価格・出荷 |
 | js/state.js | IndexedDB→localStorage 保存、セーブ版管理(migrate)、エラー記録 |
-| js/render.js | 水槽Canvas（位置Mapは全水槽で共有。他水槽の個体を消さないこと） |
+| js/render.js | 水槽Canvas（位置Mapは全水槽で共有。他水槽の個体を消さないこと。hitTest は表示中の水槽の個体だけを対象にする — 空の水槽で別水槽のエビが開いた不具合あり） |
 | js/ui.js | 全画面・演出（新色発見 .reveal / 遠征記録 .record / 出発帰還 .depart は render() で退避して残す） |
 | js/main.js | 起動、ループ（裏では停止）、遷移（同一画面内は履歴を増やさない）、演出の待ち行列、`__ebi` デバッグ |
 
