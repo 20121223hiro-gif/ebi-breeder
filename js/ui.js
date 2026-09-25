@@ -257,7 +257,16 @@ export function createUI(app) {
         ${done ? `<div class="small ${care[stage] === 'ok' ? '' : 'mute'}">この段階は世話済み（${care[stage] === 'ok' ? '正解！' : 'はずれ'}）。次の段階まで <span data-remain="${nextAt}">${fmtRemain(nextAt - now())}</span></div>` : `<div class="small mute">段階が変わるまで <span data-remain="${nextAt}">${fmtRemain(nextAt - now())}</span></div>`}
       </div>`;
     }
+    // 同じ水槽のエビを横に並べて切り替えられるようにする（水槽内でタップしにくいときのため）
+    const ids = t ? t.shrimpIds.filter((x) => S().shrimp[x]) : [id];
+    const idx = Math.max(0, ids.indexOf(id));
+    const strip = ids.length > 1 ? `<div class="sheet-nav">
+        <button class="nav-btn" data-nav="-1" aria-label="前のエビ">‹</button>
+        <div class="sheet-strip">${ids.map((x) => { const o = S().shrimp[x]; return `<button class="strip-item ${x === id ? 'on' : ''}" data-pick-sh="${x}">${sp(spriteKey(o), 44)}<span>${esc(o.name)}</span></button>`; }).join('')}</div>
+        <button class="nav-btn" data-nav="1" aria-label="次のエビ">›</button>
+      </div><div class="small mute" style="text-align:center;margin-top:-4px">${idx + 1} / ${ids.length}匹 ・ 左右にスワイプでも切り替え</div>` : '';
     const html = `<div class="dim" data-close></div><div class="sheet">
+      ${strip}
       <div class="row">${sp(spriteKey(sh), 110)}<div class="grow">
         <button class="name-btn" data-act="rename">${esc(sh.name)} <span style="color:${sh.sex === 'f' ? 'var(--red)' : 'var(--blue-ink)'}">${sh.sex === 'f' ? '♀' : '♂'}</span><span class="pen">✎</span></button>
         <div class="row" style="gap:4px;flex-wrap:wrap">${chipsOf(sh)}</div>
@@ -283,6 +292,23 @@ export function createUI(app) {
     wrap.innerHTML = html;
     root.appendChild(wrap);
     wrap.querySelector('[data-close]').onclick = () => closeSheet();
+    // 同じ水槽内の切り替え: 一覧タップ / ‹ › / 左右スワイプ
+    const goTo = (d) => { if (ids.length < 2) return; openSheet(ids[(idx + d + ids.length) % ids.length]); };
+    wrap.querySelectorAll('[data-pick-sh]').forEach((b) => { b.onclick = () => openSheet(b.dataset.pickSh); });
+    wrap.querySelectorAll('[data-nav]').forEach((b) => { b.onclick = () => goTo(Number(b.dataset.nav)); });
+    const cur = wrap.querySelector('.strip-item.on');
+    if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+    const sheetEl = wrap.querySelector('.sheet');
+    let sx = null; let sy = null;
+    sheetEl.addEventListener('touchstart', (ev) => { sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+    sheetEl.addEventListener('touchend', (ev) => {
+      if (sx == null) return;
+      const dx = ev.changedTouches[0].clientX - sx;
+      const dy = ev.changedTouches[0].clientY - sy;
+      sx = null;
+      if (ev.target.closest('.sheet-strip')) return; // 一覧の横スクロールはスワイプ扱いにしない
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goTo(dx < 0 ? 1 : -1);
+    }, { passive: true });
     wrap.querySelector('[data-act="rename"]').onclick = () => {
       const n = window.prompt('名前を変える', sh.name);
       if (n && n.trim()) { sh.name = n.trim().slice(0, 8); app.mutate(); openSheet(id); }

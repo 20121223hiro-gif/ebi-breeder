@@ -112,6 +112,14 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .dim{position:absolute;inset:0;background:rgba(20,40,38,.4);z-index:5}
 .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:20px 20px 0 0;padding:10px 16px calc(16px + var(--sab));box-shadow:0 -8px 24px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px;z-index:6;max-height:85%;overflow-y:auto}
 .sheet::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:#D5DEDA;margin:0 auto 2px}
+/* 個体カード: 同じ水槽のエビを横に並べて切り替え */
+.sheet-nav{display:flex;align-items:center;gap:4px}
+.nav-btn{flex:none;width:36px;height:56px;border-radius:10px;background:var(--teal-soft);color:var(--teal);font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center}
+.sheet-strip{flex:1;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 2px;scroll-snap-type:x proximity}
+.sheet-strip::-webkit-scrollbar{display:none}
+.strip-item{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border-radius:10px;background:var(--bg);border:2px solid transparent;font-size:10px;color:var(--mute);scroll-snap-align:center}
+.strip-item span{max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.strip-item.on{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);font-weight:700}
 .gene{display:grid;grid-template-columns:auto 1fr 1fr;gap:5px 8px;font-size:12px;align-items:center}
 .gene .k{color:var(--mute)}
 .gene .a{text-align:center;padding:4px 0;border-radius:7px;background:#F1F5F3;font-weight:700}
