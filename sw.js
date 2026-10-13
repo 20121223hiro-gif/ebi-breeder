@@ -1,6 +1,6 @@
 // オフラインでも遊べるようにするサービスワーカー。
 // 画像はキャッシュ優先、HTML/JS/CSS はネットワーク優先（更新をすぐ反映）。
-const CACHE = 'ebi-breeder-v5';
+const CACHE = 'ebi-breeder-v6';
 const ASSETS = [
   ".",
   "index.html",

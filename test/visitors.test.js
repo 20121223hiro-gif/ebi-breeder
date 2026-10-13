@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { newGame, advance, pair, careEgg, eggStage, eggAnswer, T, H } from '../js/sim.js';
-import { V, matchesWant, deliver, repLevel, wantLabel, visitorPrice } from '../js/visitors.js';
-import { makeShrimp } from '../js/genetics.js';
+import { V, matchesWant, deliver, repLevel, wantLabel, visitorPrice, genWant } from '../js/visitors.js';
+import { makeShrimp, isHidden } from '../js/genetics.js';
 
 function seeded(seed = 1) {
   let s = seed >>> 0;
@@ -56,6 +56,32 @@ test('色と段階の条件判定', () => {
   assert.equal(matchesWant(clear, { hue: null, minTier: 2, count: 1 }, 0), false);
   assert.equal(wantLabel({ hue: 'red', minTier: 3, count: 2 }), '赤 ★3濃以上 ×2匹');
   assert.equal(visitorPrice(red3, { want: { mult: 2.5 } }), 1200);
+});
+
+test('隠し色（金など）の客は★条件を付けず、名指しで渡せる', () => {
+  const gold = makeShrimp({ hidden: 'gold', now: 0, adult: true, lifeMs: T.life }, seeded(1));
+  assert.equal(gold.hue, 'gold');
+  assert.equal(matchesWant(gold, { hue: 'gold', minTier: 1, count: 1 }, 0), true);
+  assert.equal(matchesWant(gold, { hue: null, minTier: 1, count: 1 }, 0), true);
+  assert.equal(matchesWant(gold, { hue: 'yellow', minTier: 1, count: 1 }, 0), false);
+  assert.equal(wantLabel({ hue: 'gold', minTier: 1, count: 1 }), '金 ×1匹');
+  // 金を持っている店で客を何人も生成しても、隠し色の注文に★条件は付かない
+  const s = newGame(0, seeded(1));
+  s.shrimp[gold.id] = gold;
+  gold.tankId = s.tanks[0].id;
+  s.tanks[0].shrimpIds.push(gold.id);
+  s.reputation = 5;
+  const rng = seeded(7);
+  let named = 0;
+  for (let i = 0; i < 300; i += 1) {
+    const w = genWant(s, rng);
+    if (isHidden(w.hue)) { named += 1; assert.equal(w.minTier, 1, `${w.hue} に★${w.minTier}の条件が付いた`); assert.equal(w.count, 1); }
+  }
+  assert.ok(named > 0, '金を名指しする客が一度も来ない');
+  // 古いセーブに残った「金 ★4以上」は時間を進めたときに条件が外れる
+  s.visitor = { id: 'v1', name: '田中さん', arrivedAt: 0, leavesAt: V.stay, want: { hue: 'gold', minTier: 4, count: 1, mult: 2 }, delivered: 0 };
+  advance(s, 1000, seeded(2));
+  assert.equal(s.visitor.want.minTier, 1);
 });
 
 test('評判レベルの閾値', () => {

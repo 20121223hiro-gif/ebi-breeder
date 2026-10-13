@@ -50,20 +50,24 @@ export function genWant(state, rng) {
     const maxT = tiers.length ? Math.max(...tiers) : 1;
     minTier = Math.max(1, Math.min(maxT, rep >= 4 ? 3 : 2));
   } else {
-    // 一歩先（未発見の色や段階）。目標になる
+    // 一歩先（未発見の色や段階）。目標になる。隠し色は段階がないのでここでは選ばない
     const unknownHues = HUES.filter((h) => h !== 'clear' && !known.has(h));
-    hue = unknownHues.length && rng() < 0.5 ? pick(unknownHues, rng) : (owned.length ? pick(owned, rng).hue : 'red');
-    if (hue === 'clear') hue = 'red';
+    const ownedHues = owned.map((sh) => sh.hue).filter((h) => !isHidden(h));
+    hue = unknownHues.length && rng() < 0.5 ? pick(unknownHues, rng) : (ownedHues.length ? pick(ownedHues, rng) : 'red');
     minTier = Math.min(4, rep + 1);
   }
-  let count = hue === null ? 2 + Math.floor(rng() * 3) : 1 + Math.floor(rng() * 2);
+  // 隠し色（金・チョコ・白・紫）を持っていれば、たまに名指しで買いに来る。隠し色に★の段階はないので条件は付けない
+  const hiddenOwned = owned.filter((sh) => isHidden(sh.hue) && sh.hue !== 'clear').map((sh) => sh.hue);
+  if (hiddenOwned.length && rng() < 0.2) hue = pick(hiddenOwned, rng);
+  if (isHidden(hue)) minTier = 1;
+  let count = hue === null ? 2 + Math.floor(rng() * 3) : isHidden(hue) ? 1 : 1 + Math.floor(rng() * 2);
   if (hue === null) {
     // 色を問わない客は、手持ちの「渡せる成体」数を超えて要求しない（段階の条件も含めて数える）
     const adults = owned.filter((sh) => sh.adultAt <= (s.lastSeenAt ?? 0) && sh.berriedAt == null && !sh.away
       && (isHidden(sh.hue) ? (sh.hue !== 'clear' || minTier <= 1) : tierOf(sh) >= minTier)).length;
     count = Math.max(1, Math.min(count, adults));
   }
-  const mult = 1.5 + minTier * 0.4 + (hue ? 0.3 : 0) + rng() * 0.3; // 1.5〜3.3
+  const mult = 1.5 + minTier * 0.4 + (isHidden(hue) ? 0.8 : hue ? 0.3 : 0) + rng() * 0.3; // 1.5〜3.3
   return { hue, minTier, count, mult: Math.round(mult * 10) / 10 };
 }
 
@@ -87,7 +91,7 @@ export function wantLabel(want) {
 export function matchesWant(sh, want, now) {
   if (sellError(sh, now)) return false;
   if (sh.hue === 'clear') return want.hue === null && want.minTier <= 1;
-  if (isHidden(sh.hue)) return want.hue === null; // 隠し色はどの色でも枠で買ってもらえる
+  if (isHidden(sh.hue)) return want.hue === null || want.hue === sh.hue; // 隠し色は「どの色でも」か名指し。★条件は見ない
   if (want.hue && sh.hue !== want.hue) return false;
   return tierOf(sh) >= want.minTier;
 }
@@ -98,6 +102,8 @@ export function visitorPrice(sh, visitor) { return Math.round(priceOf(sh) * visi
 export function stepVisitor(state, t, rng, events) {
   if (state.nextVisitorAt == null) state.nextVisitorAt = t + V.firstDelay;
   const v = state.visitor;
+  // 古いセーブ: 隠し色に★条件が付いた客（渡せない注文）は条件を外す
+  if (v && isHidden(v.want.hue) && v.want.minTier > 1) v.want.minTier = 1;
   if (v && t >= v.leavesAt) {
     state.visitor = null;
     events.push({ type: 'visitor_leave', at: t, name: v.name, delivered: v.delivered });
