@@ -219,6 +219,20 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .reveal .sub{position:relative;color:#5A3800;font-size:12px}
 .reveal.t5{background:radial-gradient(circle at 50% 42%,#FFFFFF 0%,#FFE9A8 30%,#E59A2A 100%)}
 .reveal.t5 .ray{animation-duration:8s;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.7) 0 5deg,transparent 5deg 14deg)}
+/* 階級（成り上がり）: ホームの帯・階段・昇格演出 */
+.rankbar{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:12px;border:1px solid #D9D3C4;background:linear-gradient(90deg,#FFF9E8,#F6F1E4);color:var(--ink);text-align:left;font:inherit;line-height:1.35}
+.rankbar.hot{border-color:#E0B13A;background:linear-gradient(90deg,#FFF3C4,#FFE9A8);box-shadow:0 1px 4px rgba(200,140,0,.2)}
+.rankbar.top{background:linear-gradient(90deg,#F3E8FF,#FFE4F0)}
+.ladder{display:flex;flex-direction:column;gap:3px;margin:6px 0 10px}
+.ladder .rk{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;background:#F6F3EC;font-size:13px;color:#8A857A}
+.ladder .rk small{display:block;font-size:11px;opacity:.8}
+.ladder .rk .n{width:20px;height:20px;border-radius:50%;background:#DDD6C6;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.ladder .rk.past{color:var(--ink)}
+.ladder .rk.past .n{background:#9BB59B}
+.ladder .rk.cur{background:#FFF3C4;color:var(--ink);font-weight:700}
+.ladder .rk.cur .n{background:#E0B13A}
+.rankup .rk-name{position:relative;font-size:30px;font-weight:700;color:#7A4A00;text-shadow:0 2px 0 #fff;animation:pop .6s ease-out}
+
 /* 伝説（虹色）: エンディングの演出・額縁・チップ */
 .reveal.legend{background:radial-gradient(circle at 50% 42%,#FFFFFF 0%,#FFF2C8 22%,#FFD1E8 45%,#C9E4FF 70%,#B9A6E8 100%)}
 .reveal.legend .ray{animation-duration:10s;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.75) 0 5deg,transparent 5deg 14deg)}

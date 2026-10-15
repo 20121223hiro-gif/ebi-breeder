@@ -81,6 +81,14 @@
 - test/fuzz.test.js: ランダム操作を30日分回して不変条件（エビは水槽/遠征/バケツのどれか1つ、tankId一致、資金≥0、ゲージ範囲、隠し色は★1、セーブ往復）を検査。ルールを変えたら必ず通す
 - 直したもの: 透明の縞持ちが★4扱い / 「どの色でも」の客が渡せない匹数を要求 / 見守りのヒントを実際の判定値（汚れ40%・餌「十分」）に合わせた
 
+## 階級（成り上がり・段階1）（2026-10-15）
+- js/rank.js（純粋関数）: RANKS 6段（見習い/町のエビ屋/名の知れた店/県の名人/全国の名人/伝説）、rankReqs（実績の条件）、rankStatus、callJudge、promote、initialRank
+- 流れ: 実績がそろう → 「審査員を呼ぶ」（普通の客がいない時だけ。state.visitor に judge=目標階級、24時間滞在、相場×3、want.strict=true で隠し色は★条件枠に入らない）→ 出荷画面で納めきると state.trial.passed → 改装費（1,500/6,000/20,000/50,000、伝説は0）を払って昇格（state.rank）
+- 画面: ホーム最上部の帯 .rankbar（タップで階段と条件のモーダル）、ヘッダーの「評判 Lv」を階級名に置き換え（reputation 自体は遠征・60cm・客の要求の判定に今も使う）、昇格演出 .rankup（閉じたあとに coinFx）
+- 古いセーブは state.migrate → initialRank で実績から階級を決める（審査員・改装費は免除）。オーナーのセーブは図鑑30+★5で「全国の名人」(5) になる想定
+- 客の買値: 階級1段ごとに倍率+0.1（visitors.genWant）
+- 未実装（段階2以降）: 週1の品評会・ライバル（階級3〜5の条件に足す予定）、店の背景6枚、客の格分け、高級設備・親個体・弟子
+
 ## 伝説「虹色」＝エンディング（2026-10-15）
 - 図鑑30種の先にある31種目。genetics の HIDDEN_HUES に 'rainbow'（LEGEND_HUE）を足した。tier は隠し色と同じ★1扱い、dexKey は h_rainbow、絵は assets/shrimp/h_rainbow.png（Higgsfield、r2 参照）
 - 条件（sim.legendStatus）: 店にいる成体の★5輝が5色（赤青黄黒緑）そろい、★5同士を pair() すると female.legend=true。孵化で虹色が1匹、定員を超えていても必ず入る。1回きり（state.flags.legendBorn に at/name/id/mother/father）

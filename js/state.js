@@ -1,6 +1,7 @@
 // 保存と読み込み。IndexedDB を使い、使えなければ localStorage に落とす。
 // セーブデータには version を持たせ、古い形式は migrate で変換する。
 import { tierOf } from './genetics.js';
+import { initialRank } from './rank.js';
 
 const DB_NAME = 'ebi-breeder';
 const STORE = 'save';
@@ -58,6 +59,9 @@ export function migrate(data) {
   if (!d.items) d.items = {};
   if (!d.gear) d.gear = {};
   if (!d.bucket) d.bucket = [];
+  // 階級（2026-10-15 追加）。古いセーブは実績から決める
+  if (d.rank == null) d.rank = initialRank(d);
+  if (d.trial === undefined) d.trial = null;
   return d;
 }
 

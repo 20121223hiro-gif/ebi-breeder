@@ -455,6 +455,8 @@ export function newGame(now = Date.now(), rng = Math.random) {
     money: 500,
     reputation: 1,
     repPoints: 0,
+    rank: 1,
+    trial: null,
     visitor: null,
     nextVisitorAt: now + V.firstDelay,
     trip: null,

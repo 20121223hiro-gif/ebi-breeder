@@ -67,7 +67,9 @@ export function genWant(state, rng) {
       && (isHidden(sh.hue) ? (sh.hue !== 'clear' || minTier <= 1) : tierOf(sh) >= minTier)).length;
     count = Math.max(1, Math.min(count, adults));
   }
-  const mult = 1.5 + minTier * 0.4 + (isHidden(hue) ? 0.8 : hue ? 0.3 : 0) + rng() * 0.3; // 1.5〜3.3
+  // 階級が上がると買値が少し良くなる（1段ごとに+0.1）
+  const rankBonus = 0.1 * (Math.max(1, s.rank ?? 1) - 1);
+  const mult = 1.5 + minTier * 0.4 + (isHidden(hue) ? 0.8 : hue ? 0.3 : 0) + rng() * 0.3 + rankBonus; // 1.5〜3.3（+階級）
   return { hue, minTier, count, mult: Math.round(mult * 10) / 10 };
 }
 
@@ -91,7 +93,8 @@ export function wantLabel(want) {
 export function matchesWant(sh, want, now) {
   if (sellError(sh, now)) return false;
   if (sh.hue === 'clear') return want.hue === null && want.minTier <= 1;
-  if (isHidden(sh.hue)) return want.hue === null || want.hue === sh.hue; // 隠し色は「どの色でも」か名指し。★条件は見ない
+  // 隠し色は「どの色でも」か名指し。★条件は見ない（審査員 strict は★条件つきの枠に隠し色を入れない）
+  if (isHidden(sh.hue)) return (want.hue === null && (!want.strict || want.minTier <= 1)) || want.hue === sh.hue;
   if (want.hue && sh.hue !== want.hue) return false;
   return tierOf(sh) >= want.minTier;
 }
@@ -144,5 +147,7 @@ export function deliver(state, ids, now) {
   state.reputation = repLevel(state.repPoints);
   const done = v.delivered >= v.want.count;
   if (done) state.visitor = null;
+  // 審査員の注文をすべて納めたら試練に合格
+  if (done && v.judge) state.trial = { rank: v.judge, passed: true, passedAt: now };
   return { total, sold, done, levelUp: state.reputation > before ? state.reputation : null };
 }

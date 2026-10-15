@@ -13,6 +13,7 @@ import { priceOf, sellError, isLastOfSex, sell, fmtCoin, coinHtml } from './econ
 import { wantLabel, matchesWant, visitorPrice, deliver } from './visitors.js';
 import { DESTS, MATERIALS, ROLE_JA, canSend, teamBonus, tripSummary } from './river.js';
 import { TankView, getViewMode, toggleViewMode } from './render.js';
+import { RANKS, JUDGE, rankStatus, callJudge, promote } from './rank.js';
 import { sprites } from './assets.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -62,7 +63,75 @@ export function createUI(app) {
   function top() {
     const s = S();
     const day = Math.floor((now() - s.createdAt) / 86400000) + 1;
-    return `<div class="top"><span class="money">${coinHtml(s.money)}</span><span class="rep">評判 <b>Lv${s.reputation}</b></span><span class="mute">${day}日目</span></div>`;
+    const rk = RANKS[(s.rank ?? 1) - 1];
+    return `<div class="top"><span class="money">${coinHtml(s.money)}</span><span class="rep" data-act="rank" style="cursor:pointer"><b>${rk.name}</b></span><span class="mute">${day}日目</span></div>`;
+  }
+
+  // ---------- 階級（成り上がり） ----------
+  // ホーム上部の帯。今の階級と次の階級までの進み具合。タップで詳細
+  function rankBar() {
+    const s = S();
+    const st = rankStatus(s, now());
+    if (!st.next) return `<button class="rankbar top" data-act="rank"><span class="grow"><b>${st.cur.name}</b> ／ ${st.cur.place}<br><span class="small">最上位の階級です</span></span><span>›</span></button>`;
+    const done = st.reqs.filter((r) => r.ok).length;
+    let msg;
+    let cls = '';
+    if (!st.reqsOk) msg = `次の階級「${st.next.name}」まで 実績 ${done} / ${st.reqs.length}`;
+    else if (st.judgeHere) { msg = `審査員が待っています：${wantLabel(s.visitor.want)} ／ <span data-remain="${s.visitor.leavesAt}">${fmtRemain(s.visitor.leavesAt - now())}</span>`; cls = 'hot'; }
+    else if (!st.trialPassed) { msg = `実績がそろいました。審査員を呼んで試練（${judgeLabel(st.judge)}）へ`; cls = 'hot'; }
+    else if (st.fee && s.money < st.fee) msg = `試練に合格。改装費 ${fmtCoin(st.fee)} がたまれば「${st.next.name}」に`;
+    else { msg = `「${st.next.name}」に昇格できます${st.fee ? `（改装費 ${fmtCoin(st.fee)}）` : ''}`; cls = 'hot'; }
+    return `<button class="rankbar ${cls}" data-act="rank"><span class="grow"><b>${st.cur.name}</b> ／ ${st.cur.place}<br><span class="small">${msg}</span></span><span>›</span></button>`;
+  }
+  function judgeLabel(j) { return j ? `${j.minTier > 1 ? `★${j.minTier}${TIER_JA[j.minTier]}以上 ` : ''}×${j.count}匹を24時間以内` : 'なし'; }
+  function openRankModal() {
+    const s = S();
+    const st = rankStatus(s, now());
+    const ladder = RANKS.map((r) => `<div class="rk ${r.lv === st.rank ? 'cur' : r.lv < st.rank ? 'past' : ''}"><span class="n">${r.lv}</span><span class="grow">${r.name}<small>${r.place}</small></span>${r.lv === st.rank ? '<span class="chip star">いま</span>' : r.lv < st.rank ? '<span class="chip gray">✓</span>' : ''}</div>`).join('');
+    let nextHtml = '<div class="panel small mute">最上位の階級です。店は伝説になりました</div>';
+    if (st.next) {
+      const reqs = st.reqs.map((r) => `<div class="row small"><span class="${r.ok ? 'ok' : 'ng'}">${r.ok ? '✓' : '・'} ${r.label}</span><span class="grow"></span><span class="${r.ok ? '' : 'mute'}">${r.cur} / ${r.need}</span></div>`).join('');
+      const trial = st.judge
+        ? `<div class="row small"><span class="${st.trialPassed ? 'ok' : st.judgeHere ? '' : 'ng'}">${st.trialPassed ? '✓' : '・'} 審査員の試練：${judgeLabel(st.judge)}</span></div>`
+        : '';
+      const fee = st.fee ? `<div class="row small"><span class="${s.money >= st.fee ? 'ok' : 'ng'}">${s.money >= st.fee ? '✓' : '・'} 改装費</span><span class="grow"></span><span>${coinHtml(st.fee)}</span></div>` : '';
+      let btn = '';
+      if (!st.reqsOk) btn = '<div class="small mute" style="text-align:center">実績がそろうと審査員を呼べます</div>';
+      else if (st.judgeHere) btn = '<button class="btn sec" data-go="sell" data-id="visitor">審査員に渡しに行く ›</button>';
+      else if (!st.trialPassed) btn = `<button class="btn red" data-rk="judge">審査員を呼ぶ</button><div class="small mute" style="text-align:center">${s.visitor ? '客が帰ってから呼べます' : '来てから24時間以内に注文を納めると合格。失敗しても何度でも呼べます'}</div>`;
+      else btn = `<button class="btn red ${st.canPromote ? '' : 'off'}" data-rk="promote">${st.fee ? `改装して「${st.next.name}」になる（${fmtCoin(st.fee)}）` : `「${st.next.name}」になる`}</button>`;
+      nextHtml = `<div class="panel" style="display:flex;flex-direction:column;gap:5px"><div class="row small" style="font-weight:700"><span class="grow">次の階級「${st.next.name}」の条件</span></div>${reqs}${trial}${fee}</div>${btn}`;
+    }
+    openModal(`<h3>ブリーダーの階級</h3><div class="ladder">${ladder}</div>${nextHtml}`, (box) => {
+      const j = box.querySelector('[data-rk="judge"]');
+      if (j) j.onclick = () => {
+        const e = callJudge(s, now());
+        if (e) { app.toast(e); return; }
+        app.mutate(); closeModal(); app.toast(`${JUDGE.name} が来た：${wantLabel(s.visitor.want)}`); render();
+      };
+      const p = box.querySelector('[data-rk="promote"]');
+      if (p) p.onclick = () => {
+        const before = st.next;
+        const fee = st.fee;
+        const e = promote(s, now());
+        if (e) { app.toast(e); return; }
+        app.mutate(); closeModal(); render();
+        // 昇格の演出を見せてから、閉じたときにコインの減りを見せる
+        rankUpScene(before, () => { if (fee) coinFx(-fee); });
+      };
+    });
+  }
+  // 昇格の演出（タップで閉じる）
+  function rankUpScene(rk, done) {
+    const el = document.createElement('div');
+    el.className = 'reveal t5 rankup';
+    el.innerHTML = `<div class="ray"></div><div class="ttl">昇格！</div><div class="rk-name">${esc(rk.name)}</div><div class="nm">${esc(rk.place)}になった</div>
+      <div class="sub">客の買値が少し良くなります</div><button class="btn red">店に戻る</button>`;
+    root.appendChild(el);
+    let closed = false;
+    const close = () => { if (closed) return; closed = true; el.remove(); if (done) done(); };
+    el.querySelector('.btn').onclick = (e) => { e.stopPropagation(); close(); };
+    el.onclick = close;
   }
   function tabs(active) {
     const s = S();
@@ -135,6 +204,7 @@ export function createUI(app) {
       ? `<button class="alert" data-go="bucket"><span class="grow">🪣 バケツで <b>${bk.map((w) => esc(w.name)).join('・')}</b> が待っています<br><span class="small">水槽が満員です。入れる・入れ替える・川に返すを選んでください</span></span><span>›</span></button>`
       : '';
     root.innerHTML = `${top()}<div class="body">
+      ${rankBar()}
       ${u ? `<button class="alert ${u.cls}" data-go="${u.go[0]}" data-id="${u.go[1] ?? ''}"><span class="grow">${u.cls === 'red' ? '⚠ ' : ''}${esc(u.text)}</span><span>›</span></button>` : ''}
       ${frame}
       ${bcard}
@@ -1090,7 +1160,7 @@ export function createUI(app) {
     closeSheet(false);
     if (cur.screen !== 'tank') sheetId = null;
     // 演出（新色発見・遠征記録）は画面を作り直しても残す
-    const overlays = [...root.querySelectorAll('.reveal, .record, .depart, .coinfx')];
+    const overlays = [...root.querySelectorAll('.reveal, .record, .depart, .coinfx, .rankup')];
     switch (cur.screen) {
       case 'tank': tank(cur.id); break;
       case 'breed': breed(cur.id, cur.params); break;
@@ -1105,6 +1175,8 @@ export function createUI(app) {
   }
 
   root.addEventListener('click', (e) => {
+    const rk = e.target.closest('[data-act="rank"]');
+    if (rk) { openRankModal(); return; }
     const go = e.target.closest('[data-go]');
     if (go) { app.go(go.dataset.go, go.dataset.id || undefined); return; }
     const back = e.target.closest('[data-back]');
