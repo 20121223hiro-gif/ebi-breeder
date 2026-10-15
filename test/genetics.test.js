@@ -45,7 +45,7 @@ test('段階と図鑑キー', () => {
   assert.equal(dexKey({ hue: 'blue', sat: 1, pat: 's', shine: true }), 'b5');
   assert.equal(dexKey({ hue: 'purple', sat: 2, pat: 'n', shine: false }), 'h_purple');
   assert.equal(tierOf({ sat: 2, pat: 'n', shine: false }), 2);
-  assert.equal(ALL_DEX_KEYS.length, 30);
+  assert.equal(ALL_DEX_KEYS.length, 31); // 30種 + 伝説の虹色
   assert.equal(labelOfKey('r4'), '赤 ★4 縞');
   assert.equal(labelOfKey('h_gold'), '金');
 });

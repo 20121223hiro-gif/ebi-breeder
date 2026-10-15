@@ -1,10 +1,10 @@
 // 画面（DOM）。state の読み書きは app 経由で行い、時間進行は sim に任せる。
 import {
-  HUE_JA, TIER_JA, TIER_MULT, HUE_LETTER, isHidden, tierOf, dexKey, spriteKey, labelOfKey,
-  predictChildren, ALL_DEX_KEYS, pickName,
+  HUE_JA, TIER_JA, TIER_MULT, HUE_LETTER, isHidden, isLegend, tierOf, dexKey, spriteKey, labelOfKey,
+  predictChildren, ALL_DEX_KEYS, pickName, COLOR_HUES,
 } from './genetics.js';
 import {
-  T, TANK_TYPES, UPGRADE_PATH, upgradeInfo, upgradeTank, isAdult, feed, changeWater, pair, pairError, moveShrimp, addTank, nextHatch,
+  T, TANK_TYPES, UPGRADE_PATH, upgradeInfo, upgradeTank, isAdult, feed, changeWater, pair, pairError, legendStatus, moveShrimp, addTank, nextHatch,
   eggStage, careEgg, EGG_STAGES, EGG_CHOICES,
   sendTrip, useLeaf, placeEquipment, removeEquipment, sellMolt,
   bucketPlace, bucketSwap, bucketRelease,
@@ -39,7 +39,7 @@ function chipsOf(sh) {
     ? `<span class="chip gray">${HUE_JA[hue]}</span>`
     : `<span class="chip ${hue === 'blue' ? 'blue' : hue === 'red' ? 'red' : 'gray'}">${HUE_JA[hue]}</span>`;
   const t = tierOf(sh);
-  const tierChip = isHidden(hue) ? '<span class="chip star">隠し色</span>' : `<span class="chip star">★${t} ${TIER_JA[t]}</span>`;
+  const tierChip = isLegend(sh) ? '<span class="chip legend">伝説</span>' : isHidden(hue) ? '<span class="chip star">隠し色</span>' : `<span class="chip star">★${t} ${TIER_JA[t]}</span>`;
   const extra = (sh.boss ? '<span class="chip amber">ヌシ</span>' : sh.wild ? '<span class="chip gray">ワイルド</span>' : '')
     + (isHidden(hue) && sh.pat === 's' ? '<span class="chip blue">縞の遺伝子あり</span>' : '')
     + ((sh.exp ?? 0) >= 5 ? '<span class="chip">川帰り</span>' : '');
@@ -125,12 +125,18 @@ export function createUI(app) {
       : s.lastTrip
         ? `<button class="panel small row" data-act="lasttrip"><img src="assets/icons/chest_closed.png" alt="" style="width:28px;height:28px;object-fit:contain"><span class="grow">前回の遠征記録をもう一度見る<br><span class="mute">${DESTS[s.lastTrip.trip.dest].name} ／ ${new Date(s.lastTrip.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></span><span>›</span></button>`
         : '';
+    // 額縁: 伝説（虹色）が生まれた店に飾られる
+    const lb = s.flags.legendBorn;
+    const frame = lb
+      ? `<button class="frame" data-act="frame">${sp('h_rainbow', 0).replace('width:0px', 'width:34%')}<span class="grow"><b>伝説 ${esc(lb.name)}</b><br><span class="small">${new Date(lb.at).toLocaleDateString('ja-JP')} 誕生 ／ ${esc(lb.mother)} と ${esc(lb.father)} の子</span><br><span class="small mute">${s.shrimp[lb.id] ? 'いまも店にいます' : '額縁の中で生き続けています'}</span></span></button>`
+      : '';
     const bk = s.bucket ?? [];
     const bcard = bk.length
       ? `<button class="alert" data-go="bucket"><span class="grow">🪣 バケツで <b>${bk.map((w) => esc(w.name)).join('・')}</b> が待っています<br><span class="small">水槽が満員です。入れる・入れ替える・川に返すを選んでください</span></span><span>›</span></button>`
       : '';
     root.innerHTML = `${top()}<div class="body">
       ${u ? `<button class="alert ${u.cls}" data-go="${u.go[0]}" data-id="${u.go[1] ?? ''}"><span class="grow">${u.cls === 'red' ? '⚠ ' : ''}${esc(u.text)}</span><span>›</span></button>` : ''}
+      ${frame}
       ${bcard}
       ${tcard}
       ${vcard}
@@ -140,6 +146,12 @@ export function createUI(app) {
     mountCanvases(true);
     const lt = root.querySelector('[data-act="lasttrip"]');
     if (lt) lt.onclick = () => replayRecord();
+    const fr = root.querySelector('[data-act="frame"]');
+    if (fr) fr.onclick = () => {
+      // 額縁をタップすると、誕生の演出をもう一度
+      app.revealing = true;
+      reveal({ key: 'h_rainbow', name: lb.name, mother: lb.mother, father: lb.father }, () => { app.revealing = false; render(); });
+    };
   }
 
   // 前回の遠征記録を見返す（成果は反映済みなので表示だけ）
@@ -726,6 +738,13 @@ export function createUI(app) {
       probs = `<div class="panel" style="display:flex;flex-direction:column;gap:6px"><div class="row small" style="font-weight:700"><span class="grow">子の予想（1回で 4〜8匹）</span></div>${rows.join('')}<div class="small mute">★5 は濃×濃の子にごく稀に。確率は表示しません。</div></div>`;
     }
     const err = pairError(s, mm, ff, now());
+    // 伝説の条件（★5が5色そろい、★5同士を組む）。生まれた後は出さない
+    const lg = legendStatus(s, mm, ff, now());
+    let legendHtml = '';
+    if (!lg.born && (lg.pairOk || lg.missing.length === 0)) {
+      const dots = COLOR_HUES.map((h) => `<span class="chip ${lg.hues.includes(h) ? 'star' : 'gray'}">★5 ${HUE_JA[h]}${lg.hues.includes(h) ? ' ✓' : ''}</span>`).join('');
+      legendHtml = `<div class="panel legend-panel"><div class="row small" style="font-weight:700"><span class="grow">${lg.ready ? '✨ 伝説の条件がそろっています' : '伝説の条件'}</span></div><div class="row" style="gap:4px;flex-wrap:wrap">${dots}</div><div class="small ${lg.ready ? '' : 'mute'}">${lg.ready ? 'この掛け合わせから、虹色のエビが生まれます' : lg.pairOk ? `★5が足りない色：${lg.missing.map((h) => HUE_JA[h]).join('・')}` : '★5同士を組むと、虹色のエビが生まれます'}</div></div>`;
+    }
     const conds = [
       ['同じ水槽', mm && ff ? mm.tankId === ff.tankId : null],
       ['両方とも成体', mm && ff ? isAdult(mm, now()) && isAdult(ff, now()) : null],
@@ -736,6 +755,7 @@ export function createUI(app) {
     root.innerHTML = `<div class="head"><button class="back" data-back>‹</button>繁殖ペアを組む<span class="cnt">${esc(t.name)}</span></div>
     <div class="body">
       <div class="pair">${slot('m', mm)}<span class="x">×</span>${slot('f', ff)}</div>
+      ${legendHtml}
       ${probs}
       <div class="panel"><div class="cond">${conds}</div></div>
       <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px">
@@ -879,17 +899,19 @@ export function createUI(app) {
     <div class="body">
       <div class="dex"><span></span>${[1, 2, 3, 4, 5].map((t) => `<span class="h"><b>★${t}</b>${TIER_JA[t]}</span>`).join('')}${rowsHtml}</div>
       <div class="panel" style="display:flex;flex-direction:column;gap:6px"><div class="row small" style="font-weight:700"><span class="grow">隠し色</span><span class="mute">${['clear', 'choco', 'white', 'purple', 'gold'].filter((h) => s.dex[`h_${h}`]).length} / 5</span></div><div class="hidden-row">${hidden}</div><div class="small mute">ヒント：赤と青、赤と黒、黄と黒の子に、ごく稀に…</div></div>
+      <div class="panel legend-panel" style="display:flex;flex-direction:column;gap:6px"><div class="row small" style="font-weight:700"><span class="grow">伝説</span><span class="mute">${s.dex.h_rainbow ? '1 / 1' : '0 / 1'}</span></div><div class="hidden-row" style="justify-content:center"><button class="hc ${s.dex.h_rainbow ? '' : 'q'}" data-key="h_rainbow" style="width:40%">${sp('h_rainbow', 0, s.dex.h_rainbow ? '' : 'silhouette').replace('width:0px', 'width:88%')}</button></div><div class="small mute">${s.dex.h_rainbow ? `${new Date(s.dex.h_rainbow.foundAt).toLocaleDateString('ja-JP')} に ${esc(s.dex.h_rainbow.first)} が生まれた` : 'ヒント：★5の輝きを5色そろえて、★5同士を掛け合わせると…'}</div></div>
       <div class="panel small mute">段階の出し方：薄×薄は薄、濃×濃で濃が固定。縞は両親が持っているときだけ。輝は濃×濃の子に稀に出て、遺伝しません。</div>
     </div>${tabs('dex')}`;
     root.querySelectorAll('[data-key]').forEach((b) => {
       b.onclick = () => {
         const k = b.dataset.key;
         const d = s.dex[k];
-        openModal(`<h3>${labelOfKey(k)}</h3><div style="text-align:center;padding:6px">${sp(k, 220, d ? '' : 'silhouette')}</div>${d ? `<div class="panel small">発見日：${new Date(d.foundAt).toLocaleDateString('ja-JP')}（最初の1匹：${esc(d.first)}）<br>これまでに ${d.count}匹 生まれた<br>出荷価格：${coinHtml(k.startsWith('h_') ? 720 : 120 * TIER_MULT[k[1]])}</div>` : '<div class="panel small mute">まだ発見していません。' + hintFor(k) + '</div>'}`);
+        openModal(`<h3>${labelOfKey(k)}</h3><div style="text-align:center;padding:6px">${sp(k, 220, d ? '' : 'silhouette')}</div>${d ? `<div class="panel small">発見日：${new Date(d.foundAt).toLocaleDateString('ja-JP')}（最初の1匹：${esc(d.first)}）<br>これまでに ${d.count}匹 生まれた<br>${k === 'h_rainbow' ? '出荷できない（伝説）' : `出荷価格：${coinHtml(k.startsWith('h_') ? 720 : 120 * TIER_MULT[k[1]])}`}</div>` : '<div class="panel small mute">まだ発見していません。' + hintFor(k) + '</div>'}`);
       };
     });
   }
   function hintFor(k) {
+    if (k === 'h_rainbow') return '★5の輝きを5色そろえた店で、★5同士を掛け合わせると。';
     if (k.startsWith('h_')) return '特定の色同士の子に、ごく稀に。';
     const t = Number(k[1]);
     if (t === 1) return 'この色の個体が生まれれば登録されます。';
@@ -981,12 +1003,21 @@ export function createUI(app) {
     const key = ev.key;
     const found = ALL_DEX_KEYS.filter((k) => s.dex[k]).length;
     const t5 = key.endsWith('5');
+    const legend = key === 'h_rainbow';
     const el = document.createElement('div');
-    el.className = `reveal ${t5 ? 't5' : ''}`;
-    el.innerHTML = `<div class="ray"></div><div class="ttl">${t5 ? '伝説のエビが生まれた！' : '新しい色が生まれた！'}</div>${sp(key, 0).replace('width:0px', 'width:min(72%,300px)')}<div class="nm">${labelOfKey(key)}${ev.name ? ` — ${esc(ev.name)}` : ''}</div>
+    el.className = `reveal ${legend ? 'legend' : t5 ? 't5' : ''}`;
+    if (legend) {
+      // エンディング: 虹色。図鑑を埋め、★5を5色そろえた先にある1種
+      el.innerHTML = `<div class="ray"></div><div class="ttl">虹色のエビが生まれた</div>${sp(key, 0).replace('width:0px', 'width:min(80%,340px)')}<div class="nm">伝説 — ${esc(ev.name ?? '')}</div>
+      <div class="sub" style="font-size:13px;line-height:1.6">すべての色を見つけ、5色の輝きを1つの店に集めた<br>ブリーダーだけがたどり着く、たった1匹。<br>${esc(ev.mother ?? '')} と ${esc(ev.father ?? '')} の子。出荷はできません。</div>
+      <div class="row" style="gap:4px;position:relative;justify-content:center"><span class="chip legend">図鑑 ${found} / ${ALL_DEX_KEYS.length} 種${found >= ALL_DEX_KEYS.length ? ' 完成' : ''}</span></div>
+      <button class="btn red">額縁に飾る</button><div class="sub" style="font-weight:700">店舗の額縁からいつでも見られます</div>`;
+    } else {
+      el.innerHTML = `<div class="ray"></div><div class="ttl">${t5 ? '輝くエビが生まれた！' : '新しい色が生まれた！'}</div>${sp(key, 0).replace('width:0px', 'width:min(72%,300px)')}<div class="nm">${labelOfKey(key)}${ev.name ? ` — ${esc(ev.name)}` : ''}</div>
       <div class="row" style="gap:4px;position:relative;justify-content:center"><span class="chip star">${found} / ${ALL_DEX_KEYS.length} 種目</span></div>
       <div class="sub">${esc(ev.tankName ?? '')} の ${esc(ev.mother ?? '')} と ${esc(ev.father ?? '')} の子</div>
       <button class="btn red">図鑑に登録する</button><div class="sub" style="font-weight:700">画面をタップでスキップ</div>`;
+    }
     root.appendChild(el);
     const close = () => { el.remove(); done(); };
     el.querySelector('.btn').onclick = (e) => { e.stopPropagation(); close(); };

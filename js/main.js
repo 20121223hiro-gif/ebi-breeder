@@ -55,6 +55,7 @@ const app = {
     for (const ev of events) {
       if (ev.type === 'hatch') {
         const tank = s.tanks.find((t) => t.id === ev.tankId);
+        if (ev.legendId) s.log.unshift({ at: ev.at, text: `伝説の虹色 ${s.shrimp[ev.legendId]?.name ?? ''} が生まれた！` });
         s.log.unshift({ at: ev.at, text: `${ev.motherName} の子が ${ev.babies.length}匹生まれた${ev.lost ? `（満員で ${ev.lost}匹は育たなかった）` : ''}` });
         if (ev.babies.length) this.toast(`${ev.motherName} の子が ${ev.babies.length}匹生まれた`);
         for (const key of ev.newKeys) {

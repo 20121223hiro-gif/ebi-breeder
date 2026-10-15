@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ebi-breeder",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["serve.cjs"],
+      "port": 15310
+    }
+  ]
+}

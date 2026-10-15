@@ -1,6 +1,6 @@
 // オフラインでも遊べるようにするサービスワーカー。
 // 画像はキャッシュ優先、HTML/JS/CSS はネットワーク優先（更新をすぐ反映）。
-const CACHE = 'ebi-breeder-v6';
+const CACHE = 'ebi-breeder-v7';
 const ASSETS = [
   ".",
   "index.html",
@@ -31,6 +31,7 @@ const ASSETS = [
   "assets/shrimp/h_choco.png",
   "assets/shrimp/h_clear.png",
   "assets/shrimp/h_gold.png",
+  "assets/shrimp/h_rainbow.png",
   "assets/shrimp/h_purple.png",
   "assets/shrimp/h_white.png",
   "assets/shrimp/k1.png",

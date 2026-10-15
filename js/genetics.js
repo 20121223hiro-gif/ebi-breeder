@@ -2,11 +2,14 @@
 // 遺伝子は3対: hue(色相) / sat(発色 1..3) / pat(模様 n|s)。輝(shine)は遺伝しない突然変異。
 
 export const HUES = ['clear', 'red', 'blue', 'yellow', 'black', 'green'];
-export const HIDDEN_HUES = ['clear', 'choco', 'white', 'purple', 'gold'];
+// 'rainbow'（虹色）は伝説の1種。隠し色と同じく段階がなく、★5輝を5色そろえた店で★5同士を掛け合わせたときだけ生まれる（1回きり・遺伝しない）
+export const HIDDEN_HUES = ['clear', 'choco', 'white', 'purple', 'gold', 'rainbow'];
+export const LEGEND_HUE = 'rainbow';
+export const COLOR_HUES = ['red', 'blue', 'yellow', 'black', 'green'];
 export const HUE_LETTER = { red: 'r', blue: 'b', yellow: 'y', black: 'k', green: 'g' };
 export const HUE_JA = {
   clear: '透明', red: '赤', blue: '青', yellow: '黄', black: '黒', green: '緑',
-  choco: 'チョコ', white: '白', purple: '紫', gold: '金',
+  choco: 'チョコ', white: '白', purple: '紫', gold: '金', rainbow: '虹',
 };
 export const TIER_JA = { 1: '薄', 2: '中', 3: '濃', 4: '縞', 5: '輝' };
 export const TIER_MULT = { 1: 1, 2: 2, 3: 4, 4: 8, 5: 20 };
@@ -23,6 +26,7 @@ export const NAME_POOL = {
   white: ['シロ', 'ユキミ', 'モチ', 'ダイフク'],
   purple: ['ムラサキ', 'スミレ', 'フジ', 'ブドウ'],
   gold: ['キン', 'コガネ', 'ヒカリ', 'オウゴン'],
+  rainbow: ['ニジ', 'イロハ', 'プリズム', 'アマネ'],
 };
 
 let seq = 0;
@@ -72,6 +76,21 @@ export function tierOf(sh) {
 }
 
 export function isHidden(hue) { return HIDDEN_HUES.includes(hue); }
+export function isLegend(sh) { return sh.hue === LEGEND_HUE; }
+// ★5輝（shine）が5色そろっているか。店にいる成体だけを数える（遠征中・稚エビは含めない）
+export function shineHues(shrimpList, now) {
+  const set = new Set();
+  for (const sh of shrimpList) if (sh.shine && !sh.away && now >= sh.adultAt && COLOR_HUES.includes(sh.hue)) set.add(sh.hue);
+  return COLOR_HUES.filter((h) => set.has(h));
+}
+// 伝説の虹色を1匹作る。遺伝子は母のものをそのまま持つので、虹色の子は普通の色になる（虹色は遺伝しない）
+export function makeLegend(mother, opts, rng = Math.random) {
+  const sh = makeShrimp({ ...opts, genes: JSON.parse(JSON.stringify(mother.genes)), shine: true }, rng);
+  sh.hue = LEGEND_HUE;
+  sh.legend = true;
+  sh.tier = tierOf(sh);
+  return sh;
+}
 
 // 図鑑キー。本体色は 色1文字+段階、隠し色は h_色。
 export function dexKey(sh) {

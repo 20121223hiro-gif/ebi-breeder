@@ -17,6 +17,7 @@ export function priceOf(sh) {
 
 // 出荷できない理由。できれば null。
 export function sellError(sh, now) {
+  if (sh.hue === 'rainbow') return '伝説のエビは出荷できません';
   if (sh.away) return '遠征中は出荷できません';
   if (!isAdult(sh, now)) return '稚エビは出荷できません';
   if (sh.berriedAt != null) return '抱卵中は出荷できません';

@@ -1,5 +1,5 @@
 // 時間進行。DOMに触らない純粋関数。state を直接更新し、起きた出来事を events に積んで返す。
-import { childOf, dexKey, pickName, makeShrimp } from './genetics.js';
+import { childOf, dexKey, pickName, makeShrimp, makeLegend, shineHues, COLOR_HUES, LEGEND_HUE } from './genetics.js';
 import { stepVisitor, V } from './visitors.js';
 import { DESTS, MATERIALS, planTrip, canSend } from './river.js';
 
@@ -89,6 +89,21 @@ function hatch(state, tank, mother, now, rng, events) {
   const babies = [];
   const lost = [];
   const newKeys = [];
+  let legendId = null;
+  // 伝説の卵なら、まず虹色が1匹。定員を超えていても必ず入る（失われない）
+  if (mother.legend && !state.flags.legendBorn) {
+    const baby = makeLegend(mother, { now, growMs: T.grow, lifeMs: T.life, tankId: tank.id }, rng);
+    baby.name = pickName(LEGEND_HUE, usedNamesIn(state, tank), rng);
+    state.shrimp[baby.id] = baby;
+    tank.shrimpIds.push(baby.id);
+    babies.push(baby);
+    const key = dexKey(baby);
+    if (!state.dex[key]) { state.dex[key] = { foundAt: now, count: 0, first: baby.name }; newKeys.push(key); }
+    state.dex[key].count += 1;
+    state.flags.legendBorn = { at: now, name: baby.name, id: baby.id, mother: mother.name, father: father.name };
+    legendId = baby.id;
+  }
+  mother.legend = false;
   for (let i = 0; i < base; i += 1) {
     const baby = childOf(mother, father, { now, growMs: T.grow, lifeMs: T.life, tankId: tank.id }, rng);
     if (tank.shrimpIds.length >= tank.cap) { lost.push(baby); continue; }
@@ -105,7 +120,7 @@ function hatch(state, tank, mother, now, rng, events) {
   }
   events.push({
     type: 'hatch', at: now, tankId: tank.id, motherName: mother.name, fatherName: father.name,
-    babies: babies.map((b) => b.id), lost: lost.length, newKeys, careOk,
+    babies: babies.map((b) => b.id), lost: lost.length, newKeys, careOk, legendId,
   });
 }
 
@@ -354,7 +369,18 @@ export function pair(state, male, female, now) {
   female.mate = { name: male.name, genes: JSON.parse(JSON.stringify(male.genes)), sat: male.sat };
   female.eggCare = [null, null, null, null];
   state.flags.firstBreedDone = true;
+  // 伝説: ★5が5色そろった店で★5同士を組むと、この卵から虹色が1匹生まれる（1回きり）
+  female.legend = !!legendStatus(state, male, female, now).ready;
   return null;
+}
+
+// 伝説（虹色）の条件。hues: 店にいる★5の色、missing: 足りない色、pairOk: 選んだ2匹が両方★5
+export function legendStatus(state, male, female, now) {
+  const born = !!state.flags.legendBorn;
+  const hues = shineHues(Object.values(state.shrimp), now);
+  const missing = COLOR_HUES.filter((h) => !hues.includes(h));
+  const pairOk = !!(male && female && male.shine && female.shine);
+  return { born, hues, missing, pairOk, ready: !born && missing.length === 0 && pairOk };
 }
 
 export function moveShrimp(state, sh, tank) {

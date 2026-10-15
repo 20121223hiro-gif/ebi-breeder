@@ -219,6 +219,18 @@ button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .reveal .sub{position:relative;color:#5A3800;font-size:12px}
 .reveal.t5{background:radial-gradient(circle at 50% 42%,#FFFFFF 0%,#FFE9A8 30%,#E59A2A 100%)}
 .reveal.t5 .ray{animation-duration:8s;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.7) 0 5deg,transparent 5deg 14deg)}
+/* 伝説（虹色）: エンディングの演出・額縁・チップ */
+.reveal.legend{background:radial-gradient(circle at 50% 42%,#FFFFFF 0%,#FFF2C8 22%,#FFD1E8 45%,#C9E4FF 70%,#B9A6E8 100%)}
+.reveal.legend .ray{animation-duration:10s;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.75) 0 5deg,transparent 5deg 14deg)}
+.reveal.legend .ttl{font-size:24px;color:#5B3A8C;letter-spacing:.06em}
+.reveal.legend .nm{color:#4A2C78}
+.reveal.legend .sub{color:#4A2C78}
+.reveal.legend .sp{animation:pop 1.2s ease-out,float 3s ease-in-out 1.2s infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.chip.legend{background:linear-gradient(90deg,#FF8A8A,#FFD36B,#9BE39B,#8AC7FF,#C9A4FF);color:#3A2560;font-weight:700}
+.legend-panel{background:linear-gradient(135deg,#FFF6E0,#FFE4F0 50%,#E4EEFF);border:1px solid #D9C4F0}
+.frame{display:flex;align-items:center;gap:10px;padding:10px 12px;border:6px double #B98A3C;border-radius:8px;background:linear-gradient(135deg,#FFF9E6,#FFF0C2);box-shadow:0 2px 6px rgba(120,80,0,.18);text-align:left;color:var(--ink);font:inherit;width:100%}
+.frame .sp{flex:none;filter:drop-shadow(0 3px 4px rgba(90,50,0,.3))}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
 

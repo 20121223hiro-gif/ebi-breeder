@@ -1,5 +1,5 @@
 // 買い付け客。1〜2時間おきに来て40分で帰る。条件に合うエビを相場より高く買う。DOMに触らない。
-import { HUES, HUE_JA, HUE_LETTER, TIER_JA, isHidden, tierOf } from './genetics.js';
+import { HUES, HUE_JA, HUE_LETTER, TIER_JA, LEGEND_HUE, isHidden, tierOf } from './genetics.js';
 import { priceOf, sellError } from './economy.js';
 import { removeShrimp } from './sim.js';
 
@@ -57,7 +57,7 @@ export function genWant(state, rng) {
     minTier = Math.min(4, rep + 1);
   }
   // 隠し色（金・チョコ・白・紫）を持っていれば、たまに名指しで買いに来る。隠し色に★の段階はないので条件は付けない
-  const hiddenOwned = owned.filter((sh) => isHidden(sh.hue) && sh.hue !== 'clear').map((sh) => sh.hue);
+  const hiddenOwned = owned.filter((sh) => isHidden(sh.hue) && sh.hue !== 'clear' && sh.hue !== LEGEND_HUE).map((sh) => sh.hue); // 虹色は売れないので頼まない
   if (hiddenOwned.length && rng() < 0.2) hue = pick(hiddenOwned, rng);
   if (isHidden(hue)) minTier = 1;
   let count = hue === null ? 2 + Math.floor(rng() * 3) : isHidden(hue) ? 1 : 1 + Math.floor(rng() * 2);
